@@ -17,7 +17,11 @@ export const getActiveAdBySlot = asyncHandler(async (req, res) => {
     {
       slot,
       isActive: true,
-      startDate: { $lte: now },
+      $or: [
+        { startDate: { $exists: false } },
+        { startDate: null },
+        { startDate: { $lte: now } },
+      ],
       endDate: { $gte: now },
     },
     { $inc: { impressions: 1 } },
@@ -76,20 +80,35 @@ export const getAllAdsAdmin = asyncHandler(async (req, res) => {
  * Admin: Create new advertisement
  */
 export const createAdAdmin = asyncHandler(async (req, res) => {
-  const { title, slot, type, imageUrl, htmlContent, clickUrl, startDate, endDate, isActive } =
-    req.body;
+  const {
+    title,
+    slot,
+    type,
+    imageUrl,
+    googleAdClient,
+    googleAdSlot,
+    googleAdFormat,
+    htmlContent,
+    clickUrl,
+    startDate,
+    endDate,
+    isActive,
+  } = req.body;
 
-  if (!title || !slot || !clickUrl || !endDate) {
-    throw new ApiError(400, "Title, slot, clickUrl, and endDate are required");
+  if (!title || !slot || !endDate) {
+    throw new ApiError(400, "Title, slot, and endDate are required");
   }
 
   const ad = await Advertisement.create({
     title: title.trim(),
     slot,
-    type: type || "image",
+    type: type || (googleAdSlot ? "google_ads" : "image"),
     imageUrl: imageUrl || "",
+    googleAdClient: googleAdClient ? googleAdClient.trim() : "",
+    googleAdSlot: googleAdSlot ? googleAdSlot.trim() : "",
+    googleAdFormat: googleAdFormat || "auto",
     htmlContent: htmlContent || "",
-    clickUrl: clickUrl.trim(),
+    clickUrl: clickUrl ? clickUrl.trim() : "#",
     startDate: startDate ? new Date(startDate) : new Date(),
     endDate: new Date(endDate),
     isActive: isActive !== undefined ? Boolean(isActive) : true,

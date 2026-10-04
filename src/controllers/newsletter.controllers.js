@@ -293,6 +293,127 @@ export const deleteSubscriberAdmin = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Admin: Add single newsletter subscriber
+ * Fields: email (required), name (optional), phone (optional)
+ */
+export const createSubscriberAdmin = asyncHandler(async (req, res) => {
+  const { email, name = "", phone = "", isActive = true } = req.body;
+
+  if (!email || !email.includes("@")) {
+    throw new ApiError(400, "A valid email address is required");
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  let subscriber = await NewsletterSubscriber.findOne({ email: normalizedEmail });
+  if (subscriber) {
+    if (name && name.trim()) subscriber.name = name.trim();
+    if (phone && phone.trim()) subscriber.phone = phone.trim();
+    subscriber.isActive = isActive !== undefined ? Boolean(isActive) : true;
+    if (subscriber.isActive) subscriber.unsubscribedAt = null;
+    await subscriber.save();
+
+    return res.status(200).json(
+      new ApiResponse(200, subscriber, "Existing subscriber updated successfully")
+    );
+  }
+
+  subscriber = await NewsletterSubscriber.create({
+    email: normalizedEmail,
+    name: name ? name.trim() : "",
+    phone: phone ? phone.trim() : "",
+    source: "manual",
+    isActive: isActive !== undefined ? Boolean(isActive) : true,
+    subscribedAt: new Date(),
+  });
+
+  return res.status(201).json(
+    new ApiResponse(201, subscriber, "Subscriber added successfully")
+  );
+});
+
+/**
+ * Admin: Bulk upload newsletter subscribers (CSV / Text import)
+ * Accepts array of { email, name, phone }
+ * Only email is required!
+ */
+export const bulkCreateSubscribersAdmin = asyncHandler(async (req, res) => {
+  const { subscribers } = req.body;
+
+  if (!Array.isArray(subscribers) || subscribers.length === 0) {
+    throw new ApiError(400, "Subscribers list is required and cannot be empty");
+  }
+
+  let addedCount = 0;
+  let updatedCount = 0;
+  let skippedCount = 0;
+  const errors = [];
+
+  for (const item of subscribers) {
+    const email = item.email ? String(item.email).trim().toLowerCase() : "";
+    if (!email || !email.includes("@")) {
+      skippedCount++;
+      continue;
+    }
+
+    const name = item.name ? String(item.name).trim() : "";
+    const phone = item.phone ? String(item.phone).trim() : "";
+
+    try {
+      const existing = await NewsletterSubscriber.findOne({ email });
+      if (existing) {
+        let changed = false;
+        if (name && !existing.name) {
+          existing.name = name;
+          changed = true;
+        }
+        if (phone && !existing.phone) {
+          existing.phone = phone;
+          changed = true;
+        }
+        if (!existing.isActive) {
+          existing.isActive = true;
+          existing.unsubscribedAt = null;
+          changed = true;
+        }
+        if (changed) {
+          await existing.save();
+          updatedCount++;
+        } else {
+          skippedCount++;
+        }
+      } else {
+        await NewsletterSubscriber.create({
+          email,
+          name,
+          phone,
+          source: "manual",
+          isActive: true,
+          subscribedAt: new Date(),
+        });
+        addedCount++;
+      }
+    } catch (err) {
+      errors.push({ email, error: err.message });
+    }
+  }
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        totalProcessed: subscribers.length,
+        addedCount,
+        updatedCount,
+        skippedCount,
+        errorsCount: errors.length,
+      },
+      `Bulk import complete: ${addedCount} added, ${updatedCount} updated, ${skippedCount} skipped.`
+    )
+  );
+});
+
+/**
  * Admin: Manual newsletter campaign broadcast
  * Supports targetAudience: 'all' (default), 'registered', or 'newsletter'
  */

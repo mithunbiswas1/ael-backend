@@ -52,7 +52,7 @@ const settingSchema = new Schema(
     },
     hotlineLabel: {
       type: String,
-      default: "LPG Emergency Hotline",
+      default: "Hotline",
     },
     emergencyPhone: {
       type: String,

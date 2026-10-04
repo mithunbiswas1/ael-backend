@@ -6,6 +6,8 @@ import {
   getSubscribersAdmin,
   toggleSubscriberStatusAdmin,
   deleteSubscriberAdmin,
+  createSubscriberAdmin,
+  bulkCreateSubscribersAdmin,
   broadcastManualNewsletterAdmin,
 } from "../controllers/newsletter.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
@@ -19,7 +21,11 @@ router.route("/unsubscribe").post(unsubscribePublic);
 
 // Admin routes
 router.use(verifyJWT, verifyAdmin);
-router.route("/subscribers").get(getSubscribersAdmin);
+router
+  .route("/subscribers")
+  .get(getSubscribersAdmin)
+  .post(createSubscriberAdmin);
+router.route("/subscribers/bulk").post(bulkCreateSubscribersAdmin);
 router.route("/subscribers/:id/toggle").patch(toggleSubscriberStatusAdmin);
 router.route("/subscribers/:id").delete(deleteSubscriberAdmin);
 router.route("/broadcast").post(broadcastManualNewsletterAdmin);

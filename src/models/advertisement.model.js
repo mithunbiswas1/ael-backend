@@ -13,23 +13,36 @@ const advertisementSchema = new Schema(
       type: String,
       required: true,
       enum: [
-        "header_banner",
-        "sidebar_ad",
-        "mid_content",
-        "footer_banner",
+        "header_banner", // 1. topbar and navbar er majhe
+        "right_overlay", // 2. right side overlay ads
+        "mid_content", // 3. home hero er niche
+        "footer_banner", // 4. footer er upore
+        "sidebar_ad", // 5. subscribe card er niche
+        "popup_ad", // 6. website hover center center
         "sponsored_post",
-        "popup_ad",
       ],
       index: true,
     },
     type: {
       type: String,
-      enum: ["image", "html5"],
+      enum: ["image", "google_ads", "html5"],
       default: "image",
     },
     imageUrl: {
       type: String,
       default: "",
+    },
+    googleAdClient: {
+      type: String,
+      default: "",
+    },
+    googleAdSlot: {
+      type: String,
+      default: "",
+    },
+    googleAdFormat: {
+      type: String,
+      default: "auto",
     },
     htmlContent: {
       type: String,
@@ -37,7 +50,7 @@ const advertisementSchema = new Schema(
     },
     clickUrl: {
       type: String,
-      required: true,
+      default: "#",
       trim: true,
     },
     startDate: {

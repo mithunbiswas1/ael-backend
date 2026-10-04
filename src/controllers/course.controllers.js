@@ -375,6 +375,7 @@ export const getCourseEnrollmentHistory = asyncHandler(async (req, res) => {
       const key = `${sub.transactionId || sub._id}`;
       enrollmentsMap.set(key, {
         id: sub._id,
+        userId: userRef._id || (typeof sub.userId === "string" ? sub.userId : null),
         transactionId: sub.transactionId || `TXN-${sub._id.toString().slice(-6)}`,
         studentName:
           sub.customerDetails?.fullName ||
@@ -418,6 +419,7 @@ export const getCourseEnrollmentHistory = asyncHandler(async (req, res) => {
           const pseudoKey = `ENR-${u._id}-${matchedCourse.courseId}`;
           enrollmentsMap.set(pseudoKey, {
             id: pseudoKey,
+            userId: u._id,
             transactionId: `DIRECT-${u._id.toString().slice(-4)}`,
             studentName: u.fullName || u.userName || "Student",
             studentPhone: u.phone || "01XXXXXXXXX",
@@ -443,13 +445,33 @@ export const getCourseEnrollmentHistory = asyncHandler(async (req, res) => {
     (a, b) => new Date(b.enrolledAt) - new Date(a.enrolledAt)
   );
 
-  const totalStudents = enrollmentsList.length;
+  const totalEnrollments = enrollmentsList.length;
+
+  // Calculate unique learners (distinct students who enrolled in courses)
+  const uniqueLearnerIds = new Set();
+  enrollmentsList.forEach((e) => {
+    if (e.userId) {
+      uniqueLearnerIds.add(e.userId.toString());
+    } else if (e.studentEmail && e.studentEmail.trim()) {
+      uniqueLearnerIds.add(e.studentEmail.trim().toLowerCase());
+    } else if (
+      e.studentPhone &&
+      e.studentPhone.trim() &&
+      e.studentPhone !== "01XXXXXXXXX"
+    ) {
+      uniqueLearnerIds.add(e.studentPhone.trim());
+    } else {
+      uniqueLearnerIds.add(e.studentName || e.id);
+    }
+  });
+  const totalStudents = uniqueLearnerIds.size;
+
   const totalRevenue = enrollmentsList.reduce(
     (acc, curr) => acc + (curr.amount || 0),
     0
   );
   const totalPaid = enrollmentsList.filter((e) => e.amount > 0).length;
-  const totalFree = totalStudents - totalPaid;
+  const totalFree = totalEnrollments - totalPaid;
 
   return res.status(200).json(
     new ApiResponse(
@@ -457,6 +479,7 @@ export const getCourseEnrollmentHistory = asyncHandler(async (req, res) => {
       {
         stats: {
           totalStudents,
+          totalEnrollments,
           totalRevenue,
           totalPaid,
           totalFree,
