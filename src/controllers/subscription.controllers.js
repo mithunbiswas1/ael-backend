@@ -512,45 +512,80 @@ export const getAdminSubscriptions = asyncHandler(async (req, res) => {
   const cleanStartDate = cleanStr(startDate);
   const cleanEndDate = cleanStr(endDate);
 
-  const filter = {};
-  if (cleanStatus) filter.status = cleanStatus;
-  if (cleanPlan) filter.plan = cleanPlan;
+  const andConditions = [];
+  if (cleanStatus) andConditions.push({ status: cleanStatus });
+  if (cleanPlan) andConditions.push({ plan: cleanPlan });
 
   // Custom Date-to-Date or Quick Time Range Filter
   const now = new Date();
+  let dateQuery = null;
+
   if (cleanStartDate || cleanEndDate) {
-    filter.createdAt = {};
+    const dateRange = {};
     if (cleanStartDate) {
       const s = new Date(cleanStartDate);
       s.setHours(0, 0, 0, 0);
-      filter.createdAt.$gte = s;
+      dateRange.$gte = s;
     }
     if (cleanEndDate) {
       const e = new Date(cleanEndDate);
       e.setHours(23, 59, 59, 999);
-      filter.createdAt.$lte = e;
+      dateRange.$lte = e;
     }
+    dateQuery = {
+      $or: [
+        { createdAt: dateRange },
+        { createdAt: { $exists: false }, startDate: dateRange },
+        { createdAt: null, startDate: dateRange },
+      ],
+    };
   } else if (cleanTimeRange === "today") {
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    filter.createdAt = { $gte: startOfToday };
+    dateQuery = {
+      $or: [
+        { createdAt: { $gte: startOfToday } },
+        { createdAt: { $exists: false }, startDate: { $gte: startOfToday } },
+        { createdAt: null, startDate: { $gte: startOfToday } },
+      ],
+    };
   } else if (cleanTimeRange === "week") {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    filter.createdAt = { $gte: sevenDaysAgo };
+    dateQuery = {
+      $or: [
+        { createdAt: { $gte: sevenDaysAgo } },
+        { createdAt: { $exists: false }, startDate: { $gte: sevenDaysAgo } },
+        { createdAt: null, startDate: { $gte: sevenDaysAgo } },
+      ],
+    };
   } else if (cleanTimeRange === "month") {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    filter.createdAt = { $gte: startOfMonth };
+    dateQuery = {
+      $or: [
+        { createdAt: { $gte: startOfMonth } },
+        { createdAt: { $exists: false }, startDate: { $gte: startOfMonth } },
+        { createdAt: null, startDate: { $gte: startOfMonth } },
+      ],
+    };
+  }
+
+  if (dateQuery) {
+    andConditions.push(dateQuery);
   }
 
   if (cleanSearch) {
     const regex = new RegExp(cleanSearch, "i");
-    filter.$or = [
-      { transactionId: regex },
-      { "customerDetails.fullName": regex },
-      { "customerDetails.phone": regex },
-      { "customerDetails.email": regex },
-      { planName: regex },
-    ];
+    andConditions.push({
+      $or: [
+        { transactionId: regex },
+        { "customerDetails.fullName": regex },
+        { "customerDetails.phone": regex },
+        { "customerDetails.email": regex },
+        { planName: regex },
+      ],
+    });
   }
+
+  const filter = andConditions.length > 0 ? { $and: andConditions } : {};
 
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -558,7 +593,7 @@ export const getAdminSubscriptions = asyncHandler(async (req, res) => {
 
   const [subscriptions, total, revenueAgg, monthAgg, weekAgg, todayAgg] = await Promise.all([
     Subscription.find(filter)
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1, startDate: -1 })
       .skip(skip)
       .limit(validLimit)
       .populate("userId", "fullName userName email phone role subscription"),
@@ -568,15 +603,42 @@ export const getAdminSubscriptions = asyncHandler(async (req, res) => {
       { $group: { _id: null, total: { $sum: "$grandTotal" } } },
     ]),
     Subscription.aggregate([
-      { $match: { status: "paid", createdAt: { $gte: startOfMonth } } },
+      {
+        $match: {
+          status: "paid",
+          $or: [
+            { createdAt: { $gte: startOfMonth } },
+            { createdAt: { $exists: false }, startDate: { $gte: startOfMonth } },
+            { createdAt: null, startDate: { $gte: startOfMonth } },
+          ],
+        },
+      },
       { $group: { _id: null, total: { $sum: "$grandTotal" } } },
     ]),
     Subscription.aggregate([
-      { $match: { status: "paid", createdAt: { $gte: sevenDaysAgo } } },
+      {
+        $match: {
+          status: "paid",
+          $or: [
+            { createdAt: { $gte: sevenDaysAgo } },
+            { createdAt: { $exists: false }, startDate: { $gte: sevenDaysAgo } },
+            { createdAt: null, startDate: { $gte: sevenDaysAgo } },
+          ],
+        },
+      },
       { $group: { _id: null, total: { $sum: "$grandTotal" } } },
     ]),
     Subscription.aggregate([
-      { $match: { status: "paid", createdAt: { $gte: startOfToday } } },
+      {
+        $match: {
+          status: "paid",
+          $or: [
+            { createdAt: { $gte: startOfToday } },
+            { createdAt: { $exists: false }, startDate: { $gte: startOfToday } },
+            { createdAt: null, startDate: { $gte: startOfToday } },
+          ],
+        },
+      },
       { $group: { _id: null, total: { $sum: "$grandTotal" } } },
     ]),
   ]);
