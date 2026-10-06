@@ -75,6 +75,7 @@ app.use("/api/v1/roles", roleRouter);
 app.use("/api/v1/blogs", blogRouter);
 app.use("/api/v1/courses", courseRouter);
 app.use("/api/v1/quizzes", quizRouter);
+app.use("/api/v1/quiz", quizRouter);
 app.use("/api/v1/certificates", certificateRouter);
 app.use("/api/v1/pages", pageRouter);
 app.use("/api/v1/contact", contactRouter);

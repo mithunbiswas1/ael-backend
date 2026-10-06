@@ -1,6 +1,5 @@
-// ael_backend/src/controllers/course.controllers.js
-
 import { Course } from "../models/course.model.js";
+import { Quiz } from "../models/quiz.model.js";
 import { User } from "../models/user.model.js";
 import { Subscription } from "../models/subscription.model.js";
 import { ApiError } from "../utils/apiError.js";
@@ -153,6 +152,61 @@ export const getAdminCourses = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Automatically sync quiz questions from course curriculum modules into the course Quiz engine
+ */
+async function syncQuizFromCurriculum(course) {
+  if (!course || !course.courseId) return;
+  const curriculum = course.curriculum || [];
+  const extractedQuestions = [];
+
+  curriculum.forEach((mod, modIdx) => {
+    if (mod.quiz?.questions && Array.isArray(mod.quiz.questions)) {
+      mod.quiz.questions.forEach((q, qIdx) => {
+        if (!q.question || !q.question.trim()) return;
+        const optionsList = Array.isArray(q.options) ? q.options : [];
+        const formattedOptions = optionsList.map((optText, optIdx) => ({
+          id: `opt_m${modIdx + 1}_q${qIdx + 1}_${optIdx + 1}`,
+          text: String(optText || ""),
+          textBn: q.optionsBn?.[optIdx] || String(optText || ""),
+          isCorrect: q.correctAnswer === optIdx,
+        }));
+
+        extractedQuestions.push({
+          id: `q_m${modIdx + 1}_${qIdx + 1}_${Date.now()}_${qIdx}`,
+          question: q.question,
+          questionBn: q.questionBn || q.question,
+          type: "single",
+          options: formattedOptions,
+          explanation: q.explanation || "",
+          explanationBn: q.explanationBn || "",
+          points: 1,
+        });
+      });
+    }
+  });
+
+  if (extractedQuestions.length > 0) {
+    try {
+      await Quiz.findOneAndUpdate(
+        { courseId: course.courseId },
+        {
+          courseId: course.courseId,
+          title: `${course.title} - Assessment Quiz`,
+          titleBn: `${course.titleBn || course.title} - সমাপনী মূল্যায়ন কুইজ`,
+          questionsPerQuiz: Math.min(20, extractedQuestions.length),
+          questionBank: extractedQuestions,
+          questions: extractedQuestions,
+          isPublished: true,
+        },
+        { upsert: true, new: true }
+      );
+    } catch (err) {
+      console.warn("[syncQuizFromCurriculum] Failed to sync quiz:", err.message);
+    }
+  }
+}
+
+/**
  * Admin / Instructor: Create new course
  */
 export const createCourse = asyncHandler(async (req, res) => {
@@ -208,6 +262,9 @@ export const createCourse = asyncHandler(async (req, res) => {
     });
   }
 
+  // Auto-sync quiz questions from curriculum modules into Quiz model
+  await syncQuizFromCurriculum(course);
+
   return res
     .status(201)
     .json(new ApiResponse(201, course, "Course created successfully"));
@@ -244,6 +301,9 @@ export const updateCourse = asyncHandler(async (req, res) => {
 
   Object.assign(course, req.body);
   await course.save();
+
+  // Auto-sync quiz questions from curriculum modules into Quiz model
+  await syncQuizFromCurriculum(course);
 
   return res
     .status(200)
@@ -782,16 +842,41 @@ export const updateCourseProgress = asyncHandler(async (req, res) => {
     user.enrolledCourses.push(enrollment);
   }
 
+  if (!enrollment.lessonProgress) {
+    enrollment.lessonProgress = [];
+  }
+
   const totalLessons =
     course.curriculum?.reduce(
       (acc, mod) => acc + (mod.lessons?.length || 0),
       0
     ) || 1;
 
-  if (lessonId && (isCompleted || watchedSeconds >= 10)) {
+  if (lessonId) {
     const sLessonId = String(lessonId);
-    if (!enrollment.completedLessons.includes(sLessonId)) {
-      enrollment.completedLessons.push(sLessonId);
+    const existingIndex = enrollment.lessonProgress.findIndex(
+      (lp) => lp.lessonId === sLessonId
+    );
+
+    if (existingIndex > -1) {
+      enrollment.lessonProgress[existingIndex].lastPositionSeconds = Number(watchedSeconds) || 0;
+      enrollment.lessonProgress[existingIndex].updatedAt = new Date();
+      if (isCompleted) {
+        enrollment.lessonProgress[existingIndex].isCompleted = true;
+      }
+    } else {
+      enrollment.lessonProgress.push({
+        lessonId: sLessonId,
+        lastPositionSeconds: Number(watchedSeconds) || 0,
+        isCompleted: Boolean(isCompleted),
+        updatedAt: new Date(),
+      });
+    }
+
+    if (isCompleted || watchedSeconds >= 10) {
+      if (!enrollment.completedLessons.includes(sLessonId)) {
+        enrollment.completedLessons.push(sLessonId);
+      }
     }
   }
 
@@ -814,6 +899,7 @@ export const updateCourseProgress = asyncHandler(async (req, res) => {
         courseId: course.courseId,
         progressPercent: enrollment.progressPercent,
         completedLessons: enrollment.completedLessons,
+        lessonProgress: enrollment.lessonProgress,
         isCompleted: enrollment.progressPercent >= 100,
       },
       "Course progress updated successfully"

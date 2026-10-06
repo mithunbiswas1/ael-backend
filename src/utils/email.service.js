@@ -481,3 +481,120 @@ export const sendPurchaseInvoiceEmail = async (invoicePayload) => {
   }
 };
 
+/**
+ * Dispatches an automated certificate award email to the student upon passing the course quiz
+ */
+export const sendCertificateEmail = async ({
+  to,
+  studentName,
+  courseTitle,
+  certificateId,
+  issueDate,
+  grade,
+}) => {
+  if (!to || !to.includes("@")) {
+    return { success: false, reason: "No valid recipient email provided" };
+  }
+
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3001";
+  const verifyUrl = `${frontendUrl}/verify-certificate?id=${encodeURIComponent(certificateId)}`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Course Certification Award</title>
+</head>
+<body style="margin: 0; padding: 24px; background-color: #f8fafc; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+    <!-- Top Header -->
+    <tr>
+      <td style="background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); padding: 32px 24px; text-align: center;">
+        <span style="display: inline-block; padding: 4px 12px; background: rgba(251, 191, 36, 0.2); border: 1px solid #fbbf24; color: #fbbf24; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; border-radius: 20px; text-transform: uppercase;">
+          Official Certificate of Completion
+        </span>
+        <h1 style="color: #ffffff; font-size: 24px; margin: 16px 0 6px; font-weight: 800;">
+          Congratulations, ${studentName}!
+        </h1>
+        <p style="color: #94a3b8; font-size: 14px; margin: 0;">
+          You have successfully passed the national safety compliance assessment.
+        </p>
+      </td>
+    </tr>
+
+    <!-- Body Details -->
+    <tr>
+      <td style="padding: 28px 24px;">
+        <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-top: 0;">
+          We are pleased to inform you that your verified certificate for <strong>${courseTitle}</strong> is now officially generated and permanently registered in the National LPG Safety Registry.
+        </p>
+
+        <!-- Certificate Card -->
+        <div style="background: #f1f5f9; border-left: 4px solid #f59e0b; padding: 18px; border-radius: 6px; margin: 24px 0;">
+          <table width="100%" cellpadding="4" cellspacing="0" style="font-size: 13px;">
+            <tr>
+              <td style="color: #64748b; width: 140px;">Certificate ID:</td>
+              <td style="color: #0f172a; font-weight: 700; font-family: monospace;">${certificateId}</td>
+            </tr>
+            <tr>
+              <td style="color: #64748b;">Course Title:</td>
+              <td style="color: #0f172a; font-weight: 600;">${courseTitle}</td>
+            </tr>
+            <tr>
+              <td style="color: #64748b;">Issue Date:</td>
+              <td style="color: #0f172a;">${issueDate}</td>
+            </tr>
+            <tr>
+              <td style="color: #64748b;">Score / Grade:</td>
+              <td style="color: #16a34a; font-weight: 700;">${grade}</td>
+            </tr>
+            <tr>
+              <td style="color: #64748b;">Verification Status:</td>
+              <td style="color: #2563eb; font-weight: 700;">Verified & Valid</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Call to Action -->
+        <div style="text-align: center; margin: 32px 0 16px;">
+          <a href="${verifyUrl}" style="display: inline-block; background: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
+            View & Download Certificate PDF
+          </a>
+        </div>
+        <p style="text-align: center; font-size: 12px; color: #64748b; margin-top: 8px;">
+          Or copy link: <a href="${verifyUrl}" style="color: #2563eb;">${verifyUrl}</a>
+        </p>
+      </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+      <td style="background: #f8fafc; padding: 20px 24px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 12px; color: #94a3b8;">
+        <p style="margin: 0 0 4px;">
+          Safe LPG Bangladesh Academy • Department of Explosives (DoE) & LOAB Standards
+        </p>
+        <p style="margin: 0;">
+          This is an automated educational credential notice. Keep this email for your compliance records.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  try {
+    return await sendMail({
+      to,
+      subject: `[Certificate Awarded] ${courseTitle} - ${certificateId}`,
+      html,
+      text: `Congratulations ${studentName}! You passed ${courseTitle}. Your certificate ID is ${certificateId}. View & Download PDF: ${verifyUrl}`,
+    });
+  } catch (err) {
+    console.warn(`[CertificateEmail] Failed to deliver certificate email to ${to}:`, err.message);
+    return { success: false, error: err.message };
+  }
+};
+
+

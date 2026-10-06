@@ -146,6 +146,18 @@ const userSchema = new Schema(
         enrolledAt: { type: Date, default: Date.now },
         progressPercent: { type: Number, default: 0 },
         completedLessons: [{ type: String }],
+        lessonProgress: [
+          {
+            lessonId: { type: String, required: true },
+            lastPositionSeconds: { type: Number, default: 0 },
+            durationSeconds: { type: Number, default: 0 },
+            isCompleted: { type: Boolean, default: false },
+            updatedAt: { type: Date, default: Date.now },
+          },
+        ],
+        quizPassed: { type: Boolean, default: false },
+        lastQuizAttemptAt: { type: Date },
+        quizCooldownUntil: { type: Date },
         status: { type: String, enum: ["active", "completed"], default: "active" },
       },
     ],
