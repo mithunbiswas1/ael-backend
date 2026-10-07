@@ -17,6 +17,7 @@ import {
   uploadCourseImage,
   uploadCoursePdf,
   updateCourseProgress,
+  submitModuleQuiz,
 } from "../controllers/course.controllers.js";
 import { upload, uploadVideo } from "../middlewares/multer.middlewares.js";
 
@@ -67,6 +68,7 @@ router
 router.route("/subscriber/my-learning").get(verifyJWT, getMyEnrolledCourses);
 router.route("/subscriber/enroll").post(verifyJWT, enrollInCourse);
 router.route("/:id/progress").post(verifyJWT, updateCourseProgress);
+router.route("/:id/module-quiz").post(verifyJWT, submitModuleQuiz);
 
 // Single course details (after explicit static routes)
 router.route("/:id").get(getCourseById);

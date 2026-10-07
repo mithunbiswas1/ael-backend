@@ -1,6 +1,7 @@
 import { Course } from "../models/course.model.js";
 import { Quiz } from "../models/quiz.model.js";
 import { User } from "../models/user.model.js";
+import { Certificate } from "../models/certificate.model.js";
 import { Subscription } from "../models/subscription.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
@@ -341,6 +342,15 @@ export const deleteCourse = asyncHandler(async (req, res) => {
 
   await Course.deleteOne({ _id: course._id });
 
+  // Clean up associated quizzes
+  await Quiz.deleteMany({
+    $or: [
+      { courseId: course.courseId },
+      { courseId: course._id.toString() },
+      { courseTitle: course.title },
+    ],
+  });
+
   return res
     .status(200)
     .json(new ApiResponse(200, null, "Course deleted successfully"));
@@ -608,10 +618,12 @@ export const getMyEnrolledCourses = asyncHandler(async (req, res) => {
     return {
       ...c.toObject(),
       enrollment: enrollment || {
-        progressPercent: user.role === "subscriber" ? 35 : 0,
+        progressPercent: 0,
         status: "active",
         enrolledAt: new Date(),
         completedLessons: [],
+        lessonProgress: [],
+        moduleQuizResults: [],
       },
     };
   });
@@ -630,11 +642,13 @@ export const enrollInCourse = asyncHandler(async (req, res) => {
     throw new ApiError(400, "courseId is required");
   }
 
+  const cIdStr = String(courseId).trim();
+  const isObjectId = /^[0-9a-fA-F]{24}$/.test(cIdStr);
   const course = await Course.findOne({
     $or: [
-      { courseId },
-      { slug: courseId.toLowerCase() },
-      { _id: courseId.match(/^[0-9a-fA-F]{24}$/) ? courseId : null },
+      { courseId: cIdStr },
+      { slug: cIdStr.toLowerCase() },
+      ...(isObjectId ? [{ _id: cIdStr }] : []),
     ],
   });
 
@@ -873,7 +887,7 @@ export const updateCourseProgress = asyncHandler(async (req, res) => {
       });
     }
 
-    if (isCompleted || watchedSeconds >= 10) {
+    if (isCompleted) {
       if (!enrollment.completedLessons.includes(sLessonId)) {
         enrollment.completedLessons.push(sLessonId);
       }
@@ -903,6 +917,133 @@ export const updateCourseProgress = asyncHandler(async (req, res) => {
         isCompleted: enrollment.progressPercent >= 100,
       },
       "Course progress updated successfully"
+    )
+  );
+});
+
+/**
+ * Learner: Submit Module Quiz (or Final Exam)
+ * - Updates or appends moduleQuizResults entry for moduleIdx
+ * - If last module (Final Exam) and passed: generates official Certificate
+ */
+export const submitModuleQuiz = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { moduleIndex, scorePercent = 0, isPassed = false, submittedAnswers = {} } = req.body;
+
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const course = await Course.findOne({
+    $or: [{ courseId: id }, { slug: id.toLowerCase() }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }],
+  });
+
+  if (!course) {
+    throw new ApiError(404, "Course not found");
+  }
+
+  if (!user.enrolledCourses) {
+    user.enrolledCourses = [];
+  }
+
+  let enrollment = user.enrolledCourses.find(
+    (e) => e.courseId === course.courseId || e.courseId === course._id.toString() || e.courseId === course.slug
+  );
+
+  if (!enrollment) {
+    enrollment = {
+      courseId: course.courseId,
+      enrolledAt: new Date(),
+      progressPercent: 0,
+      completedLessons: [],
+      status: "active",
+      moduleQuizResults: [],
+    };
+    user.enrolledCourses.push(enrollment);
+  }
+
+  if (!enrollment.moduleQuizResults) {
+    enrollment.moduleQuizResults = [];
+  }
+
+  const existingResultIdx = enrollment.moduleQuizResults.findIndex(
+    (r) => Number(r.moduleIndex) === Number(moduleIndex)
+  );
+
+  const quizResultData = {
+    moduleIndex: Number(moduleIndex),
+    scorePercent: Number(scorePercent),
+    isPassed: Boolean(isPassed),
+    submittedAnswers: submittedAnswers || {},
+    attemptedAt: new Date(),
+  };
+
+  if (existingResultIdx > -1) {
+    enrollment.moduleQuizResults[existingResultIdx] = quizResultData;
+  } else {
+    enrollment.moduleQuizResults.push(quizResultData);
+  }
+
+  // Check if this is the final exam module
+  const totalModules = course.curriculum?.length || 1;
+  const isFinalExam = Number(moduleIndex) >= totalModules - 1;
+  let certificate = null;
+
+  if (isFinalExam && isPassed) {
+    enrollment.quizPassed = true;
+    enrollment.status = "completed";
+    enrollment.progressPercent = 100;
+
+    let existingCert = await Certificate.findOne({
+      userId: user._id,
+      courseTitle: course.title,
+    });
+
+    if (!existingCert) {
+      const now = new Date();
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      const certId = `CERT-LPG-${(course.courseId || "1").toUpperCase()}-${Date.now().toString().slice(-4)}${randomSuffix}`;
+      const issueDate = now.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      const issueDateBn = now.toLocaleDateString("bn-BD");
+      const resolvedStudentName = user.fullName || user.userName || "Verified Learner";
+
+      existingCert = await Certificate.create({
+        certificateId: certId,
+        studentName: resolvedStudentName,
+        studentNameBn: resolvedStudentName,
+        courseTitle: course.title,
+        courseTitleBn: course.titleBn || course.title,
+        issueDate,
+        issueDateBn,
+        grade: `Pass (${scorePercent}%)`,
+        status: "Verified & Valid",
+        userId: user._id,
+      });
+    }
+    certificate = existingCert;
+  }
+
+  await user.save();
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        courseId: course.courseId,
+        moduleIndex: Number(moduleIndex),
+        scorePercent: Number(scorePercent),
+        isPassed: Boolean(isPassed),
+        certificate,
+        moduleQuizResults: enrollment.moduleQuizResults,
+      },
+      isPassed
+        ? "Module assessment passed successfully!"
+        : "Module assessment submitted."
     )
   );
 });

@@ -12,11 +12,12 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 import { Course } from "../models/course.model.js";
 import { Quiz } from "../models/quiz.model.js";
 import { User } from "../models/user.model.js";
+import { Certificate } from "../models/certificate.model.js";
 
 const sampleVideoUrl = "/sample-course-video.mp4";
 
 // =========================================================================
-// 1. FREE COURSE (3 Modules: 3 videos, 4 videos, 4 videos -> Total 11 videos)
+// 1. FREE COURSE (3 Modules: 3 videos + 1.4 Quiz, 4 videos + 2.5 Quiz, 1 video + 3.2 Final Exam)
 // =========================================================================
 const freeCourseData = {
   courseId: "1",
@@ -35,10 +36,10 @@ const freeCourseData = {
   audienceBn: "ভোক্তা, গৃহিণী ও গৃহস্থালি কর্মী",
   level: "Beginner",
   levelBn: "প্রাথমিক",
-  duration: "1h 45m",
-  durationBn: "১ ঘণ্টা ৪৫ মিনিট",
-  totalLessons: 11,
-  totalQuizzes: 1,
+  duration: "1h 35m",
+  durationBn: "১ ঘণ্টা ৩৫ মিনিট",
+  totalLessons: 8,
+  totalQuizzes: 3,
   rating: 4.9,
   enrolledCount: "16,420",
   price: 0,
@@ -58,19 +59,22 @@ const freeCourseData = {
     avatar:
       "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop",
   },
-  learningOutcomes: [
+  learningPoints: [
     "Master the physical behavior and density of LPG vapor compared to ambient atmospheric air.",
     "Inspect cylinder O-ring seals, low-pressure regulators, and steel-reinforced rubber hoses.",
     "Implement zero-spark cross-ventilation protocols during suspected gas leakage emergencies.",
     "Correctly operate Dry Chemical Powder (DCP) extinguishers using the P.A.S.S. methodology.",
   ],
-  learningOutcomesBn: [
+  learningPointsBn: [
     "এলপিজি বাষ্পের বৈশিষ্ট্য ও বাতাসের চেয়ে ভারী হওয়ার ঝুঁকি সম্পর্কে সম্যক জ্ঞান অর্জন।",
     "সিলিন্ডারের রাবার ও-রিং, রেগুলেটর ক্লিপ ও মেটালিক হোসপাইপ সঠিকভাবে পরীক্ষা ও স্থাপন।",
     "গ্যাস লিকেজের সময় কোনো সুইচ স্পর্শ না করে সঠিক ক্রস-ভেন্টিলেশন প্রোটোকল বাস্তবায়ন।",
     "ডিসিবি অগ্নিনির্বাপক যন্ত্রের সঠিক ব্যবহার এবং জাতীয় জরুরি হেল্পলাইনে (১৬১৩৭) যোগাযোগের কৌশল।",
   ],
   curriculum: [
+    // -------------------------------------------------------------
+    // MODULE 1: 3 Videos (1.1, 1.2, 1.3) + 1.4 Assessment Quiz
+    // -------------------------------------------------------------
     {
       moduleTitle: "Module 1: Fundamental LPG Properties & Safe Setup",
       moduleTitleBn: "মডিউল ১: এলপিজির মৌলিক বৈশিষ্ট্য ও নিরাপদ সংযোগ",
@@ -113,7 +117,83 @@ const freeCourseData = {
             "রেগুলেটর লাগানোর সময় ক্লিক শব্দ হওয়া পর্যন্ত পরীক্ষা করুন। ক্ষয়প্রাপ্ত বা পুরোনো রেগুলেটর জোরপূর্বক ব্যবহার করবেন না।",
         },
       ],
+      quiz: {
+        title: "Module 1 Safety & Cylinder Inspection Quiz",
+        titleBn: "মডিউল ১: নিরাপত্তা ও সিলিন্ডার পরীক্ষণ কুইজ",
+        durationMinutes: 10,
+        passingScore: 70,
+        questions: [
+          {
+            question: "Is LPG vapor heavier or lighter than atmospheric ambient air?",
+            questionBn: "এলপিজি বাষ্প সাধারণ বায়ুমণ্ডলের বাতাসের চেয়ে ভারী নাকি হালকা?",
+            options: [
+              "1.5 to 2.0 times heavier (it pools along the floor and depressions)",
+              "Much lighter (it floats directly to the ceiling like natural methane)",
+              "Exactly the same density as ambient room air",
+              "It dissolves instantly in air without settling anywhere",
+            ],
+            optionsBn: [
+              "১.৫ থেকে ২.০ গুণ ভারী (মেঝে ও নিচু স্থানে জমা হয়)",
+              "অনেক হালকা (মিথেন গ্যাসের মতো সোজা ছাদে উঠে যায়)",
+              "বাতাসের ঘনত্বের একদম সমান",
+              "বাতাসে সাথে সাথে মিশে গিয়ে কোনো স্থানে জমে না",
+            ],
+            correctAnswer: 0,
+            explanation:
+              "LPG vapor has a relative density of 1.5 to 2.0 compared to air, which causes it to sink and pool at floor level during leaks.",
+            explanationBn:
+              "এলপিজি বাষ্প বাতাসের চেয়ে দেড় থেকে দুই গুণ ভারী হওয়ায় লিকেজ হলে তা মেঝের দিকে নিচু হয়ে জমা হয়।",
+          },
+          {
+            question: "Pure commercial LPG has a strong natural foul odor of its own without any chemical additives.",
+            questionBn: "বিশুদ্ধ বাণিজ্যিক এলপিজি গ্যাসে কোনো কেমিক্যাল না মিশালেও এটি প্রাকৃতিকভাবেই তীব্র দুর্গন্ধযুক্ত।",
+            options: ["True", "False"],
+            optionsBn: ["সত্য", "মিথ্যা"],
+            correctAnswer: 1,
+            explanation:
+              "Pure LPG is completely odorless. Ethyl Mercaptan is added artificially to give it a strong warning odor.",
+            explanationBn:
+              "বিশুদ্ধ এলপিজি সম্পূর্ণ গন্ধহীন। লিকেজ সহজে শনাক্ত করার জন্য এতে তীব্র গন্ধযুক্ত ইথাইল মারক্যাপ্টান মেশানো হয়।",
+          },
+          {
+            question: "Which method is the ONLY safe and approved procedure to detect gas leakage around a cylinder?",
+            questionBn: "সিলিন্ডারের সংযোগে গ্যাস লিকেজ পরীক্ষা করার একমাত্র নিরাপদ ও অনুমোদিত পদ্ধতি কোনটি?",
+            options: [
+              "Applying liquid soapy water foam around the valve and regulator neck",
+              "Holding a lit matchstick near the valve to see if a flame catches",
+              "Listening closely with ear pressed against the regulator valve",
+              "Smelling with nose directly touching the open valve port",
+            ],
+            optionsBn: [
+              "রেগুলেটর ও ভালভের সংযোগে সাবান-পানির ফেনা প্রয়োগ করে বুদবুদ দেখা",
+              "ভালভের কাছে জ্বলন্ত দেশলাই কাঠি ধরে আগুন জ্বলে কি না দেখা",
+              "রেগুলেটরের গায়ে কান চেপে ধরে শব্দ শোনার চেষ্টা করা",
+              "খোলা ভালভের মুখে সরাসরি নাক দিয়ে গন্ধ শোঁকা",
+            ],
+            correctAnswer: 0,
+            explanation:
+              "Liquid soapy water bubbles clearly reveal gas escaping without creating any fire hazard.",
+            explanationBn:
+              "সাবান-পানির ফেনা দিলে গ্যাসের চাপে বুদবুদ তৈরি হয়, যা আগুন ছাড়াই সম্পূর্ণ নিরাপদে লিকেজ প্রমাণ করে।",
+          },
+          {
+            question: "Using an open flame or matchstick to quickly check for gas leaks is acceptable if done outdoors.",
+            questionBn: "উন্মুক্ত স্থানে দ্রুত গ্যাস লিকেজ চেক করার জন্য জ্বলন্ত ম্যাচকাঠি ব্যবহার করা নিরাপদ।",
+            options: ["True", "False"],
+            optionsBn: ["সত্য", "মিথ্যা"],
+            correctAnswer: 1,
+            explanation:
+              "Never bring an open flame near suspected gas leakage under any circumstances.",
+            explanationBn:
+              "কোনো অবস্থাতেই গ্যাসের লিকেজ চেক করতে আগুন ব্যবহার করা যাবে না। এটি মারাত্মক বিস্ফোরণ ঘটাতে পারে।",
+          },
+        ],
+      },
     },
+
+    // -------------------------------------------------------------
+    // MODULE 2: 4 Videos (2.1, 2.2, 2.3, 2.4) + 2.5 Assessment Quiz
+    // -------------------------------------------------------------
     {
       moduleTitle: "Module 2: Daily Kitchen Operations & Leak Prevention",
       moduleTitleBn: "মডিউল ২: দৈনন্দিন রান্নাঘরের ব্যবহার ও লিকেজ প্রতিরোধ",
@@ -168,67 +248,187 @@ const freeCourseData = {
             "সিলিন্ডার বদলানোর আগে রেগুলেটর নব পুরোপুরি বন্ধ করুন। অতিরিক্ত সিলিন্ডার বদ্ধ আলমারি বা ভূগর্ভস্থ বেজমেন্টে রাখবেন না।",
         },
       ],
+      quiz: {
+        title: "Module 2 Kitchen Operations & Leak Prevention Quiz",
+        titleBn: "মডিউল ২: রান্নাঘরের ব্যবহার ও লিকেজ প্রতিরোধ কুইজ",
+        durationMinutes: 10,
+        passingScore: 70,
+        questions: [
+          {
+            question: "What is the correct protocol when lighting a manual gas stove?",
+            questionBn: "ম্যানুয়াল গ্যাস চুলা জ্বালানোর সময় সঠিক প্রোটোকল কোনটি?",
+            options: [
+              "Light the match/lighter FIRST, then turn on the burner knob",
+              "Turn on the burner knob, wait 10 seconds, then search for a lighter",
+              "Keep the burner knob on high while opening windows",
+              "Light the match only after hearing strong gas hissing",
+            ],
+            optionsBn: [
+              "আগে দেশলাই বা লাইটার জ্বালিয়ে প্রস্তুত করুন, তারপর চুলার নব ঘুরান",
+              "চুলার নব আগে ঘুরিয়ে ১০ সেকেন্ড পর লাইটার খুঁজুন",
+              "জানালা খোলার সময় চুলার নব ফুল চালু রাখুন",
+              "গ্যাস বের হওয়ার হিসহিস শব্দ পাওয়ার পর লাইটার জ্বালান",
+            ],
+            correctAnswer: 0,
+            explanation:
+              "Always have the flame ready first so unburned gas does not accumulate over the stove before ignition.",
+            explanationBn:
+              "সবসময় আগে ম্যাচ বা লাইটার জ্বালিয়ে তারপর চুলার নব ঘোরান, যাতে বাতাসে গ্যাস জমে না থাকে।",
+          },
+          {
+            question: "LPG cylinders can safely be laid on their sides or inverted to extract remaining gas.",
+            questionBn: "শেষের গ্যাস ব্যবহারের জন্য সিলিন্ডার কাত করে বা উল্টো করে রাখা সম্পূর্ণ নিরাপদ।",
+            options: ["True", "False"],
+            optionsBn: ["সত্য", "মিথ্যা"],
+            correctAnswer: 1,
+            explanation:
+              "Never tilt or invert a cylinder! Tilting can force liquid LPG into the regulator, causing sudden high-pressure flare-ups.",
+            explanationBn:
+              "সিলিন্ডার কাত বা উল্টো করলে তরল গ্যাস রেগুলেটরে প্রবেশ করে ভয়াবহ অগ্নিকাণ্ড ঘটাতে পারে। সিলিন্ডার সর্বদা সোজা রাখতে হবে।",
+          },
+          {
+            question: "What is the minimum safe clearance distance between an LPG cylinder and the cooking stove?",
+            questionBn: "এলপিজি সিলিন্ডার এবং রান্নার চুলার মধ্যে ন্যূনতম নিরাপদ দূরত্ব কত?",
+            options: [
+              "At least 1 meter (approx. 3 feet) on a flat level floor",
+              "Directly underneath the cooking burner without any gap",
+              "No minimum distance is required",
+              "Minimum 10 meters away in another building",
+            ],
+            optionsBn: [
+              "সমতল মেঝেতে কমপক্ষে ১ মিটার (প্রায় ৩ ফুট) দূরত্ব বজায় রাখা",
+              "চুলার ঠিক নিচেই কোনো ফাঁকা জায়গা ছাড়া রাখা",
+              "কোনো দূরত্বের প্রয়োজন নেই",
+              "অন্য ভবনে কমপক্ষে ১০ মিটার দূরে রাখা",
+            ],
+            correctAnswer: 0,
+            explanation:
+              "Maintain at least 1 meter clearance between the cylinder and direct stove heat sources.",
+            explanationBn:
+              "সিলিন্ডার ও চুলার মধ্যে কমপক্ষে ১ মিটার দূরত্ব রাখা বাধ্যতামূলক যাতে চুলার তাপে সিলিন্ডার গরম না হয়।",
+          },
+          {
+            question: "Keeping kitchen windows open for positive natural cross-ventilation prevents flammable gas accumulation.",
+            questionBn: "রান্নাঘরের জানালা খোলা রেখে স্বাভাবিক বায়ু চলাচল নিশ্চিত করলে বিপজ্জনক গ্যাস জমে থাকা প্রতিরোধ হয়।",
+            options: ["True", "False"],
+            optionsBn: ["সত্য", "মিথ্যা"],
+            correctAnswer: 0,
+            explanation:
+              "Natural cross-ventilation allows ambient airflow to dilute and disperse any minor gas leak safely.",
+            explanationBn:
+              "রান্নার সময় পর্যাপ্ত বায়ু চলাচল নিশ্চিত করলে কোনো লিকেজ থাকলে তা জমে না থেকে সহজে বের হয়ে যায়।",
+          },
+        ],
+      },
     },
+
+    // -------------------------------------------------------------
+    // MODULE 3: 1 Video (3.1) + 3.2 Final Certification Exam
+    // -------------------------------------------------------------
     {
-      moduleTitle: "Module 3: Emergency Gas Leak Response & Fire Containment",
-      moduleTitleBn: "মডিউল ৩: গ্যাস লিকেজ জরুরি অবস্থা ও অগ্নিনির্বাপণ কৌশল",
+      moduleTitle: "Module 3: Emergency Gas Leak Response & Final Certification",
+      moduleTitleBn: "মডিউল ৩: গ্যাস লিকেজ জরুরি অবস্থা ও সমাপনী সনদপত্র মূল্যায়ন",
       isFree: true,
       lessons: [
         {
-          title: "Immediate Actions During Gas Leak: Zero Spark Protocol",
-          titleBn: "গ্যাস লিকেজ হলে তাৎক্ষণিক করণীয়: জিরো স্পার্ক নিয়ম",
-          duration: "12 mins",
-          durationBn: "১২ মিনিট",
+          title: "Emergency Response SOP, Zero-Spark Protocol & Fire Extinguisher Operation",
+          titleBn: "জরুরি রেসপন্স এসওপি, জিরো-স্পার্ক নিয়ম ও অগ্নিনির্বাপক পরিচালনা",
+          duration: "14 mins",
+          durationBn: "১৪ মিনিট",
           videoUrl: sampleVideoUrl,
           freePreview: false,
           notes:
-            "CRITICAL: Do NOT turn switches ON or OFF. Do NOT use phone in kitchen. Disconnect regulator if safe, open all doors and windows immediately.",
+            "Zero-Spark protocol: Do NOT touch switches, evacuate swiftly, call National LPG Hotline 16137. Master PASS method for DCP extinguisher.",
           notesBn:
-            "জরুরি নিয়ম: কোনো বৈদ্যুতিক সুইচ অন বা অফ করবেন না। রান্নাঘরে ফোন ব্যবহার করবেন না। সম্ভব হলে রেগুলেটর বন্ধ করুন এবং দরজা-জানালা খুলে দিন।",
-        },
-        {
-          title: "Cross-Ventilation, Evacuation & Damp Cloth Valve Smothering",
-          titleBn: "ক্রস-ভেন্টিলেশন, নিরাপদ স্থানান্তর ও ভেজা চটের ব্যবহার",
-          duration: "10 mins",
-          durationBn: "১০ মিনিট",
-          videoUrl: sampleVideoUrl,
-          freePreview: false,
-          notes:
-            "In case of valve ignition, wrap a thick wet sack/blanket around cylinder collar in one swift motion to cut oxygen supply.",
-          notesBn:
-            "সিলিন্ডারের মুখে আগুন লাগলে আতঙ্কিত না হয়ে একটি মোটা ভেজা কম্বল বা চটের বস্তা দ্রুত ও দৃঢ়ভাবে পেঁচিয়ে বাতাসের সংযোগ বিচ্ছিন্ন করুন।",
-        },
-        {
-          title: "Dry Chemical Powder (DCP) Fire Extinguisher Operation",
-          titleBn: "ডিসিবি অগ্নিনির্বাপক যন্ত্রের সঠিক পি.এ.এস.এস পদ্ধতি",
-          duration: "13 mins",
-          durationBn: "১৩ মিনিট",
-          videoUrl: sampleVideoUrl,
-          freePreview: false,
-          notes:
-            "P.A.S.S. technique: Pull safety pin, Aim nozzle at fire base, Squeeze control handle, Sweep side-to-side from upwind position.",
-          notesBn:
-            "P.A.S.S পদ্ধতি: পিন টানুন, আগুনের মূল ভিত্তিমূলে লক্ষ্য করুন, হ্যান্ডেল চাপুন, এবং বাতাসের অনুকূলে থেকে এপাশ-ওপাশ স্প্রে করুন।",
-        },
-        {
-          title: "National Emergency Hotline 16137 & Rapid Response Tree",
-          titleBn: "জাতীয় জরুরি হেল্পলাইন ১৬১৩৭ ও জরুরি সহায়তা যোগাযোগ",
-          duration: "08 mins",
-          durationBn: "০৮ মিনিট",
-          videoUrl: sampleVideoUrl,
-          freePreview: false,
-          notes:
-            "Immediate emergency escalation tree: National LPG Emergency 16137, Fire Service 102 / 02223355555, National Emergency 999.",
-          notesBn:
-            "জরুরি সহায়তা নম্বর: জাতীয় এলপিজি জরুরি হেল্পলাইন ১৬১৩৭, ফায়ার সার্ভিস ১০২, জাতীয় জরুরি সেবা ৯৯৯।",
+            "জিরো-স্পার্ক নিয়ম: কোনো সুইচ স্পর্শ করবেন না, দ্রুত নিরাপদ স্থানে যান এবং জাতীয় হেল্পলাইন ১৬১৩৭ এ কল দিন। অগ্নিনির্বাপকের পি.এ.এস.এস পদ্ধতি আয়ত্ত করুন।",
         },
       ],
+      quiz: {
+        title: "Final Household LPG Safety Certification Exam",
+        titleBn: "সমাপনী গৃহস্থালি এলপিজি নিরাপত্তা সনদপত্র পরীক্ষা",
+        durationMinutes: 15,
+        passingScore: 70,
+        questions: [
+          {
+            question: "What is the strictly enforced 'Zero-Spark Protocol' during an acute gas leak emergency?",
+            questionBn: "তীব্র গ্যাস লিকেজের সময় 'জিরো স্পার্ক প্রোটোকল' অনুযায়ী কোনটি সম্পূর্ণ নিষিদ্ধ?",
+            options: [
+              "Do NOT flip any electrical light switches or exhaust fan switches ON or OFF",
+              "Immediately turn on the exhaust fan to blow gas away",
+              "Turn on all lights to locate the leak source in the dark",
+              "Charge mobile phones inside the kitchen while waiting",
+            ],
+            optionsBn: [
+              "কোনো বৈদ্যুতিক বাতি বা এক্সহস্ট ফ্যানের সুইচ অন বা অফ করবেন না",
+              "গ্যাস বের করার জন্য দ্রুত এক্সহস্ট ফ্যানের সুইচ অন করবেন",
+              "অন্ধকারে লিকেজ দেখতে সব লাইট জ্বালিয়ে দেবেন",
+              "রান্নাঘরে বসে ফোনে চার্জ দেবেন",
+            ],
+            correctAnswer: 0,
+            explanation:
+              "Switch contacts produce micro-sparks that can instantly detonate accumulated LPG vapor. Leave electrical switches untouched.",
+            explanationBn:
+              "সুইচ অন বা অফ করার সময় যে ক্ষুদ্র স্ফুলিঙ্গ তৈরি হয় তা আবদ্ধ গ্যাসে মুহূর্তেই ভয়াবহ বিস্ফোরণ ঘটাতে পারে।",
+          },
+          {
+            question: "In the event of cylinder valve ignition, smothering the collar with a wet jute sack or thick damp blanket cuts the oxygen supply.",
+            questionBn: "সিলিন্ডারের মুখে আগুন লাগলে ভেজা মোটা চটের বস্তা বা কম্বল দৃঢ়ভাবে পেঁচিয়ে দিলে বাতাসের অক্সিজেন সংযোগ বিচ্ছিন্ন হয়ে আগুন নিভে যায়।",
+            options: ["True", "False"],
+            optionsBn: ["সত্য", "মিথ্যা"],
+            correctAnswer: 0,
+            explanation:
+              "Smothering the collar firmly with a soaked non-synthetic material starves the fire of oxygen, extinguishing it safely.",
+            explanationBn:
+              "ভেজা চটের বস্তা দিয়ে এক ঝটকায় সিলিন্ডার পেঁচিয়ে দিলে বাতাসের সংযোগ সম্পূর্ণ বন্ধ হয়ে আগুন তৎক্ষণাৎ নিভে যায়।",
+          },
+          {
+            question: "What is the official nationwide emergency hotline for LPG safety support and dispatch in Bangladesh?",
+            questionBn: "বাংলাদেশে জরুরি এলপিজি সহায়তা ও নিরাপত্তা নির্দেশনার জন্য অনুমোদিত জাতীয় হেল্পলাইন নম্বর কোনটি?",
+            options: [
+              "16137 (National LPG Emergency Helpline)",
+              "109",
+              "333",
+              "16247",
+            ],
+            optionsBn: [
+              "১৬১৩৭ (জাতীয় এলপিজি জরুরি হেল্পলাইন)",
+              "১০৯",
+              "৩৩৩",
+              "১৬২৪৭",
+            ],
+            correctAnswer: 0,
+            explanation: "16137 is the 24/7 dedicated National LPG Emergency Helpline.",
+            explanationBn: "১৬১৩৭ হলো ২৪/৭ জাতীয় এলপিজি জরুরি হেল্পলাইন।",
+          },
+          {
+            question: "What is the correct P.A.S.S. sequence when operating a Dry Chemical Powder fire extinguisher?",
+            questionBn: "ডিসিবি অগ্নিনির্বাপক যন্ত্র ব্যবহারের সঠিক পি.এ.এস.এস (P.A.S.S.) ক্রম কোনটি?",
+            options: [
+              "Pull pin, Aim at fire base, Squeeze lever, Sweep side-to-side",
+              "Push handle, Air out room, Spray flames, Stop",
+              "Point upwards, Activate valve, Shake cylinder, Strike ground",
+              "Press trigger, Aim at smoke, Spin around, Shout for help",
+            ],
+            optionsBn: [
+              "পিন টানুন, আগুনের মূল ভিত্তিতে লক্ষ্য করুন, লিভার চাপুন, এপাশ-ওপাশ সুইপ করুন",
+              "হ্যান্ডেল চাপুন, রুম খালি করুন, ধোঁয়ায় স্প্রে করুন, থামুন",
+              "উপরের দিকে তাক করুন, ভালভ চালু করুন, সিলিন্ডার নাড়ান, নিচে রাখুন",
+              "ট্রিগার চাপুন, ধোঁয়ায় স্প্রে করুন, ঘুরে দাঁড়ান, সাহায্য চান",
+            ],
+            correctAnswer: 0,
+            explanation:
+              "P.A.S.S.: Pull the pin, Aim low at the base of the fire, Squeeze the lever, and Sweep side to side.",
+            explanationBn:
+              "P.A.S.S. হলো: পিন টানুন (Pull), আগুনের গোড়ায় তাক করুন (Aim), লিভার চাপুন (Squeeze), এবং এপাশ-ওপাশ স্প্রে করুন (Sweep)।",
+          },
+        ],
+      },
     },
   ],
 };
 
 // =========================================================================
-// 2. PAID COURSE (3 Modules: 3 videos, 4 videos, 4 videos -> Total 11 videos)
+// 2. PAID COURSE (3 Modules: 3 videos + 1.4 Quiz, 4 videos + 2.5 Quiz, 1 video + 3.2 Final Exam)
 // =========================================================================
 const paidCourseData = {
   courseId: "2",
@@ -247,10 +447,10 @@ const paidCourseData = {
   audienceBn: "রেস্তোরাঁ ব্যবস্থাপক, নিরাপত্তা প্রকৌশলী ও ডিলার",
   level: "Advanced",
   levelBn: "উন্নত",
-  duration: "2h 30m",
-  durationBn: "২ ঘণ্টা ৩০ মিনিট",
-  totalLessons: 11,
-  totalQuizzes: 1,
+  duration: "2h 15m",
+  durationBn: "২ ঘণ্টা ১৫ মিনিট",
+  totalLessons: 8,
+  totalQuizzes: 3,
   rating: 4.95,
   enrolledCount: "9,850",
   price: 1250,
@@ -270,19 +470,22 @@ const paidCourseData = {
     avatar:
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop",
   },
-  learningOutcomes: [
+  learningPoints: [
     "Design and commission dual-bank multi-cylinder commercial manifold systems adhering to DoE standards.",
     "Specify, calibrate, and wire catalytic and infrared LEL gas detectors with solenoid emergency valves.",
     "Calculate natural ventilation louver ratios and kitchen exhaust hood interlock airflow limits.",
     "Maintain inspection logbooks, hydrostatic pressure audit certs, and statutory NBR/BERC licenses.",
   ],
-  learningOutcomesBn: [
+  learningPointsBn: [
     "বিস্ফোরক অধিদপ্তরের কোড অনুযায়ী বাণিজ্যিক মাল্টি-সিলিন্ডার ম্যানিফোল্ড সিস্টেম স্থাপন ও ডিজাইন।",
     "ক্যাটালিটিক ও ইনফ্রারেড গ্যাস সেন্সর স্থাপন এবং সোলেনয়েড শাট-অফ ভালভ অটোমেশন কার্যকরকরণ।",
     "প্রাকৃতিক বায়ু চলাচলের পরিমাপ এবং কিচেন হুড ইন্টারলক নিরাপত্তা ব্যবস্থা নিশ্চিতকরণ।",
     "নিয়মিত পরিদর্শন লগশিট, হাইড্রোস্ট্যাটিক প্রেসার সনদ এবং সরকারি লাইসেন্সিং অডিট প্রস্তুতি।",
   ],
   curriculum: [
+    // -------------------------------------------------------------
+    // MODULE 1: 3 Videos (1.1, 1.2, 1.3) + 1.4 Assessment Quiz (Free Preview)
+    // -------------------------------------------------------------
     {
       moduleTitle: "Module 1: Commercial Installation & Manifold Architecture",
       moduleTitleBn: "মডিউল ১: বাণিজ্যিক ইনস্টলেশন ও সিলিন্ডার ম্যানিফোল্ড প্রকৌশল",
@@ -318,14 +521,90 @@ const paidCourseData = {
           duration: "15 mins",
           durationBn: "১৫ মিনিট",
           videoUrl: sampleVideoUrl,
-          freePreview: false,
+          freePreview: true,
           notes:
             "Schedule 40/80 seamless carbon steel pipe (ASTM A53/A106) with golden yellow protective epoxy coating and pneumatic leak certification.",
           notesBn:
             "বাণিজ্যিক লাইনে শিডিউল ৪০/৮০ সিমলেস কার্বন স্টিল পাইপ ব্যবহার এবং সোনালী হলুদ রঙের কোটিং দ্বারা চিহ্নিতকরণ বাধ্যতামূলক।",
         },
       ],
+      quiz: {
+        title: "Module 1 Manifold Architecture & Piping Engineering Quiz",
+        titleBn: "মডিউল ১: ম্যানিফোল্ড আর্কিটেকচার ও পাইপিং ইঞ্জিনিয়ারিং কুইজ",
+        durationMinutes: 10,
+        passingScore: 70,
+        questions: [
+          {
+            question: "Under statutory regulations, where must commercial multi-cylinder manifold banks be situated?",
+            questionBn: "সংবিধিবদ্ধ আইন অনুযায়ী বাণিজ্যিক মাল্টি-সিলিন্ডার ম্যানিফোল্ড ব্যাংক কোথায় স্থাপন করতে হবে?",
+            options: [
+              "Outside cooking areas in a well-ventilated, masonry shelter with natural louvers",
+              "Directly underneath the commercial kitchen burners for shortest pipe runs",
+              "In the basement boiler room next to electrical generators",
+              "Inside the food storage pantry behind closed doors",
+            ],
+            optionsBn: [
+              "রান্নাঘরের বাইরে প্রাকৃতিক বায়ু চলাচলযুক্ত অগ্নিনিরোধক উন্মুক্ত শেডে",
+              "পাইপ ছোট রাখার সুবিধার্থে সরাসরি বাণিজ্যিক চুলার নিচে ক্যাবিনেটে",
+              "জেনারেটরের সাথে ভূগর্ভস্থ বেজমেন্ট বয়লার রুমে",
+              "রান্নাঘরের খাদ্য গুদাম প্যান্ট্রিতে বন্ধ দরজার পেছনে",
+            ],
+            correctAnswer: 0,
+            explanation:
+              "Commercial codes require manifold banks to be located outdoors in naturally ventilated enclosures.",
+            explanationBn:
+              "সংবিধিবদ্ধ কোড অনুযায়ী মাল্টি-সিলিন্ডার ব্যাংক অবশ্যই রান্নাঘরের বাইরে উন্মুক্ত ও প্রাকৃতিক বায়ু চলাচলযুক্ত সেডে রাখতে হবে।",
+          },
+          {
+            question: "It is legally permissible to route commercial high-pressure LPG gas pipelines through air conditioning return ducts.",
+            questionBn: "বাণিজ্যিক এলপিজি গ্যাস পাইপলাইন শীতাতপ নিয়ন্ত্রণকারী (এসি) ডাক্ট বা লিফটের শ্যাফটের মধ্য দিয়ে নিয়ে যাওয়া আইনত বৈধ।",
+            options: ["True", "False"],
+            optionsBn: ["সত্য", "মিথ্যা"],
+            correctAnswer: 1,
+            explanation:
+              "Building codes strictly forbid running gas pipes through ventilation ducts or elevator shafts.",
+            explanationBn:
+              "এসি ডাক্ট বা লিফট শ্যাফটের মধ্য দিয়ে গ্যাস লাইন নেওয়া সম্পূর্ণ নিষিদ্ধ ও মারাত্মক আইন লঙ্ঘন।",
+          },
+          {
+            question: "What piping standard is required for commercial LPG header manifold installations?",
+            questionBn: "বাণিজ্যিক এলপিজি হেডার ম্যানিফোল্ড সংযোগে কোন পাইপিং মানদণ্ড বাধ্যতামূলক?",
+            options: [
+              "ASTM A53 / A106 Schedule 40/80 seamless carbon steel piping",
+              "Standard thin PVC sanitary drainage pipe",
+              "Unreinforced flexible clear garden water hose",
+              "Galvanized zinc corrugated irrigation tube",
+            ],
+            optionsBn: [
+              "ASTM A53 / A106 শিডিউল ৪০/৮০ সিমলেস কার্বন স্টিল পাইপ",
+              "সাধারণ পাতলা পিভিসি ড্রেনেজ পাইপ",
+              "সাধারণ প্লাস্টিকের স্বচ্ছ গার্ডেন হোসপাইপ",
+              "টিনের বা দস্তার পাতলা ইরিগেশন পাইপ",
+            ],
+            correctAnswer: 0,
+            explanation:
+              "High pressure requires Schedule 40/80 seamless carbon steel pipes with welded or flanged connections.",
+            explanationBn:
+              "বাণিজ্যিক গ্যাস লাইনে শিডিউল ৪০/৮০ সিমলেস কার্বন স্টিল পাইপ ব্যবহার বাধ্যতামূলক।",
+          },
+          {
+            question: "Commercial LPG pipes must be color-coded with golden yellow protective epoxy coating for rapid identification.",
+            questionBn: "জরুরি মুহূর্তে দ্রুত শনাক্তকরণের জন্য বাণিজ্যিক এলপিজি পাইপ সোনালী হলুদ রঙে চিহ্নিত করা বাধ্যতামূলক।",
+            options: ["True", "False"],
+            optionsBn: ["সত্য", "মিথ্যা"],
+            correctAnswer: 0,
+            explanation:
+              "Safety regulations require gas lines to be painted golden yellow for immediate hazard recognition.",
+            explanationBn:
+              "নিরাপত্তা বিধিমালা অনুযায়ী গ্যাস লাইন সর্বদা সোনালী হলুদ রঙে পেইন্ট করে চিহ্নিত রাখা বাধ্যতামূলক।",
+          },
+        ],
+      },
     },
+
+    // -------------------------------------------------------------
+    // MODULE 2: 4 Videos (2.1, 2.2, 2.3, 2.4) + 2.5 Assessment Quiz
+    // -------------------------------------------------------------
     {
       moduleTitle: "Module 2: Gas Automation, Detection & Explosion Mitigation",
       moduleTitleBn: "মডিউল ২: গ্যাস অটোমেশন, ডিটেকশন ও বিস্ফোরণ প্রতিরোধ ব্যবস্থা",
@@ -380,519 +659,223 @@ const paidCourseData = {
             "অধিক ব্যবহারের জন্য ওয়াটার-বাথ ভেপোরাইজার ও গ্যাস লাইনে ব্যাকফায়ার প্রতিরোধী ফ্ল্যাশব্যাক অ্যারেস্টর স্থাপন।",
         },
       ],
+      quiz: {
+        title: "Module 2 Gas Automation & Interlock Mitigation Systems Quiz",
+        titleBn: "মডিউল ২: গ্যাস অটোমেশন ও ইন্টারলক সিস্টেম কুইজ",
+        durationMinutes: 10,
+        passingScore: 70,
+        questions: [
+          {
+            question: "At what percentage of Lower Explosive Limit (LEL) should commercial safety detection systems trigger an automated solenoid shut-off?",
+            questionBn: "বাণিজ্যিক গ্যাস ডিটেকশন সিস্টেমে লোয়ার এক্সপ্লোসিভ লিমিটের (LEL) শতকরা কত ঘনত্বে অটো সোলেনয়েড শাট-অফ সক্রিয় হওয়া আবশ্যক?",
+            options: [
+              "Between 10% to 20% LEL",
+              "At 100% LEL when flame is already active",
+              "At 85% LEL",
+              "LEL sensors are not required in commercial kitchens",
+            ],
+            optionsBn: [
+              "১০% থেকে ২০% LEL এর মধ্যে",
+              "১০০% LEL এ যখন ইতিমধ্যে আগুন জ্বলে উঠেছে",
+              "৮৫% LEL এ",
+              "বাণিজ্যিক রান্নাঘরে এলইএল সেন্সরের কোনো প্রয়োজন নেই",
+            ],
+            correctAnswer: 0,
+            explanation:
+              "Sensors trigger safety solenoids between 10% and 20% LEL to stop gas flow long before an explosive mixture can form.",
+            explanationBn:
+              "বিস্ফোরণ ঘটার অনেক আগেই (১০% থেকে ২০% LEL ঘনত্বে) সেন্সর সংকেত পাঠিয়ে গ্যাস লাইন স্বয়ংক্রিয়ভাবে লক করে দেয়।",
+          },
+          {
+            question: "Gas supply in commercial kitchens must be interlocked so gas flows ONLY when the mechanical exhaust hood is actively running.",
+            questionBn: "বাণিজ্যিক রান্নাঘরে গ্যাস সরবরাহ অবশ্যই এক্সহস্ট হুডের সাথে ইন্টারলক থাকতে হবে, যাতে এক্সহস্ট ফ্যান চালু থাকলেই কেবল গ্যাস সরবরাহ চালু হয়।",
+            options: ["True", "False"],
+            optionsBn: ["সত্য", "মিথ্যা"],
+            correctAnswer: 0,
+            explanation:
+              "Exhaust interlocks prevent unvented gas or combustion fumes from building up in the kitchen workspace.",
+            explanationBn:
+              "এক্সহস্ট ফ্যান বন্ধ থাকলে যাতে গ্যাস সংযোগ কোনোভাবেই চালু না হতে পারে সেজন্য ইলেকট্রিক্যাল ইন্টারলক নিশ্চিত করা আইনত বাধ্যতামূলক।",
+          },
+          {
+            question: "At what vertical height from the floor should heavy combustible LPG leak sensors be mounted?",
+            questionBn: "মেঝে থেকে কত উচ্চতায় ভারী এলপিজি গ্যাস লিক ডিটেক্টর সেন্সরগুলো স্থাপন করতে হবে?",
+            options: [
+              "15 to 30 cm above floor level near appliances and manifolds",
+              "On the highest ceiling point next to smoke detectors",
+              "Directly on the exhaust fan blades",
+              "Inside closed kitchen storage cabinets",
+            ],
+            optionsBn: [
+              "মেঝের স্তর থেকে ১৫ থেকে ৩০ সেমি ওপরে যন্ত্রপাতি ও ম্যানিফোল্ডের কাছে",
+              "সরাসরি সিলিংয়ের সর্বোচ্চ চূড়ায় ধোঁয়া ডিটেক্টরের পাশে",
+              "এক্সহস্ট ফ্যানের ব্লেডের উপর",
+              "বদ্ধ কিচেন স্টোরেজ ক্যাবিনেটের ভেতরে",
+            ],
+            correctAnswer: 0,
+            explanation:
+              "Since LPG is heavier than air, sensors must be placed 15-30 cm from the floor to catch sinking vapor.",
+            explanationBn:
+              "যেহেতু এলপিজি বাতাসের চেয়ে ভারী এবং মেঝেতে জমে, তাই সেন্সরগুলো মেঝে থেকে ১৫-৩০ সেমি উপরে স্থাপন করতে হয়।",
+          },
+          {
+            question: "Flashback arrestors and flame arrestors protect against fire traveling backward into the gas supply lines.",
+            questionBn: "ফ্ল্যাশব্যাক অ্যারেস্টর চুলার বিপরীত দিকে গ্যাস সরবরাহের পাইপে আগুন প্রবেশ করা প্রতিরোধ করে।",
+            options: ["True", "False"],
+            optionsBn: ["সত্য", "মিথ্যা"],
+            correctAnswer: 0,
+            explanation:
+              "Flashback arrestors extinguish reverse flame propagation and arrest backfires before reaching the header.",
+            explanationBn:
+              "ফ্ল্যাশব্যাক প্রতিরোধক ব্যাকফায়ার হওয়া আগুনকে পাইপলাইনে প্রবেশ করতে দেয় না এবং দুর্ঘটনা প্রতিরোধ করে।",
+          },
+        ],
+      },
     },
+
+    // -------------------------------------------------------------
+    // MODULE 3: 1 Video (3.1) + 3.2 Final Certification Exam
+    // -------------------------------------------------------------
     {
-      moduleTitle: "Module 3: Statutory Compliance, Inspection Auditing & Incident SOP",
-      moduleTitleBn: "মডিউল ৩: সংবিধিবদ্ধ আইন, নিরাপত্তা পরিদর্শন ও জরুরি প্রটোকল",
+      moduleTitle: "Module 3: Statutory Compliance, Inspection Auditing & Certification",
+      moduleTitleBn: "মডিউল ৩: সংবিধিবদ্ধ আইন, নিরাপত্তা পরিদর্শন ও সমাপনী সনদপত্র মূল্যায়ন",
       isFree: false,
       lessons: [
         {
-          title: "Department of Explosives (DoE) Statutory Audit Code & Rules",
-          titleBn: "বিস্ফোরক অধিদপ্তর (DoE) সংবিধিবদ্ধ অডিট কোড ও লাইসেন্সিং",
+          title: "Department of Explosives (DoE) Audit Codes & Industrial Incident SOP",
+          titleBn: "বিস্ফোরক অধিদপ্তর (DoE) সংবিধিবদ্ধ অডিট কোড ও শিল্প দুর্ঘটনা এসওপি",
           duration: "18 mins",
           durationBn: "১৮ মিনিট",
           videoUrl: sampleVideoUrl,
           freePreview: false,
           notes:
-            "The Gas Cylinder Rules 1991 (amended 2004) require storage licenses for aggregate LPG storage exceeding 80 kg on premises.",
+            "Gas Cylinder Rules 1991 (amended 2004) compliance: aggregate storage exceeding 80 kg requires DoE license, quarterly PRV calibration, and incident command hierarchy.",
           notesBn:
-            "গ্যাস সিলিন্ডার বিধিমালা ১৯৯১ (সংশোধিত ২০০৪) অনুযায়ী ৮০ কেজির বেশি মজুদের জন্য বিস্ফোরক অধিদপ্তরের লাইসেন্স বাধ্যতামূলক।",
-        },
-        {
-          title: "Fire Service & Civil Defence Approval & Factory Law Standards",
-          titleBn: "ফায়ার সার্ভিস লাইসেন্স, রাজউক ও কারখানা আইন প্রতিপালন",
-          duration: "14 mins",
-          durationBn: "১৪ মিনিট",
-          videoUrl: sampleVideoUrl,
-          freePreview: false,
-          notes:
-            "Install dual 50kg ABC dry powder wheeled extinguishers, fire hydrants, and clear 3-meter safety egress corridors at all times.",
-          notesBn:
-            "৫০ কেজি এবিসি চাকাযুক্ত ফায়ার এক্সটিংগুইশার, ফায়ার হাইড্রেন্ট পয়েন্ট এবং ৩ মিটার জরুরি বহির্গমন করিডোর নিশ্চিতকরণ।",
-        },
-        {
-          title: "Comprehensive Commercial Hazard Identification & SOP Checklist",
-          titleBn: "বাণিজ্যিক ঝুঁকি মূল্যায়ন, কোয়ার্টারলি লগশিট ও এসওপি চেকলিস্ট",
-          duration: "12 mins",
-          durationBn: "১২ মিনিট",
-          videoUrl: sampleVideoUrl,
-          freePreview: false,
-          notes:
-            "Execute mandatory weekly soap bubble leak inspections, quarterly PRV test logs, and annual certified acoustic emissions surveys.",
-          notesBn:
-            "সাপ্তাহিক সাবান-পানির টেস্ট, কোয়ার্টারলি ভালভ ইন্সপেকশন এবং বাৎসরিক অডিট রিপোর্ট সংরক্ষিত রাখা।",
-        },
-        {
-          title: "Industrial Emergency Evacuation Drill, Containment & Reporting",
-          titleBn: "শিল্প কারখানার জরুরি মহড়া, রেসপন্স প্রটোকল ও তদন্ত প্রতিবেদন",
-          duration: "15 mins",
-          durationBn: "১৫ মিনিট",
-          videoUrl: sampleVideoUrl,
-          freePreview: false,
-          notes:
-            "Implement incident command hierarchy: activate sirens, isolate main valves, evacuate muster point, notify Fire Service & DoE inspectors.",
-          notesBn:
-            "জরুরি পরিস্থিতিতে সাইরেন বাজানো, মূল সরবরাহ বিচ্ছিন্ন করা, নির্দিষ্ট সমাবেশ স্থানে স্থানান্তর ও নিয়ন্ত্রক সংস্থাকে রিপোর্ট করা।",
+            "গ্যাস সিলিন্ডার বিধিমালা ১৯৯১ অনুযায়ী ৮০ কেজির বেশি মজুদের জন্য বিস্ফোরক অধিদপ্তরের লাইসেন্স বাধ্যতামূলক, ত্রৈমাসিক ভালভ পরীক্ষা ও জরুরি প্রটোকল প্রতিপালন।",
         },
       ],
+      quiz: {
+        title: "Final Commercial Safety & Compliance Certification Exam",
+        titleBn: "সমাপনী বাণিজ্যিক নিরাপত্তা ও সংবিধিবদ্ধ সম্মতি সনদপত্র মূল্যায়ন",
+        durationMinutes: 15,
+        passingScore: 70,
+        questions: [
+          {
+            question: "Under the Gas Cylinder Rules 1991 (amended 2004), what aggregate LPG storage requires a statutory DoE storage license?",
+            questionBn: "গ্যাস সিলিন্ডার বিধিমালা ১৯৯১ (সংশোধিত ২০০৪) অনুযায়ী কত পরিমাণের বেশি এলপিজি মজুদের জন্য বিস্ফোরক অধিদপ্তরের (DoE) লাইসেন্স বাধ্যতামূলক?",
+            options: [
+              "Aggregate storage exceeding 80 kg on the commercial premises",
+              "Any storage exceeding 1,000,000 kg only",
+              "Storage licenses are never required for private restaurants",
+              "Only when more than 500 cylinders are connected",
+            ],
+            optionsBn: [
+              "বাণিজ্যিক প্রাঙ্গণে ৮০ কেজির অধিক পরিমাণ এলপিজি গ্যাস মজুদের ক্ষেত্রে",
+              "শুধুমাত্র ১০ লাখ কেজির বেশি মজুদের ক্ষেত্রে",
+              "ব্যক্তিগত রেস্তোরাঁর জন্য কখনো কোনো লাইসেন্সের প্রয়োজন নেই",
+              "শুধুমাত্র ৫০০ টির বেশি সিলিন্ডার সংযুক্ত থাকলে",
+            ],
+            correctAnswer: 0,
+            explanation:
+              "Premises storing more than 80 kg of LPG in cylinders must obtain a valid statutory storage license from DoE.",
+            explanationBn:
+              "৮০ কেজির বেশি সিলিন্ডার মজুদের জন্য বিস্ফোরক অধিদপ্তর (DoE) থেকে বাধ্যতামূলক লাইসেন্স গ্রহণ করতে হয়।",
+          },
+          {
+            question: "Emergency manual shut-off pull valves in commercial restaurant manifold rooms must remain completely unobstructed by inventory boxes.",
+            questionBn: "বাণিজ্যিক রেস্তোরাঁর ম্যানিফোল্ড রুমে জরুরি ম্যানুয়াল শাট-অফ ভালভ সর্বদা বাধাহীন ও সহজে পৌঁছানো যায় এমন অবস্থায় রাখতে হবে।",
+            options: ["True", "False"],
+            optionsBn: ["সত্য", "মিথ্যা"],
+            correctAnswer: 0,
+            explanation:
+              "Clear egress and instant access to emergency shut-off valves is strictly required by fire safety codes.",
+            explanationBn:
+              "জরুরি শাট-অফ ভালভের সামনে কোনো মালামাল বা বক্স রাখা আইনত নিষিদ্ধ; এটি সর্বদা বাধাহীন রাখতে হবে।",
+          },
+          {
+            question: "How frequently must commercial high-pressure regulators and Pressure Relief Valves (PRV) undergo statutory recalibration?",
+            questionBn: "বাণিজ্যিক এলপিজি প্রেসার রিলিফ ভালভ (PRV) এবং রেগুলেটর কত সময় পর পর সংবিধিবদ্ধভাবে পরীক্ষা ও ক্যালিব্রেশন করতে হয়?",
+            options: [
+              "Quarterly operational checklist inspection with annual certified hydrostatic calibration",
+              "Never, regulators never require testing or calibration",
+              "Only once every 25 years",
+              "Only after an explosion or fire occurs",
+            ],
+            optionsBn: [
+              "প্রতি ৩ মাস অন্তর অপারেশনাল চেকলিস্ট পরিদর্শন ও বাৎসরিক সার্টিফাইড হাইড্রোস্ট্যাটিক ক্যালিব্রেশন",
+              "কখনোই নয়, এগুলো পরীক্ষার কোনো প্রয়োজন নেই",
+              "প্রতি ২৫ বছরে মাত্র একবার",
+              "শুধুমাত্র কোনো অগ্নিকাণ্ড ঘটার পর",
+            ],
+            correctAnswer: 0,
+            explanation:
+              "Statutory standards require quarterly visual/leak inspections and annual certified hydrostatic pressure tests.",
+            explanationBn:
+              "কোয়ার্টারলি চেকলিস্ট অডিট এবং বাৎসরিক সার্টিফাইড হাইড্রোস্ট্যাটিক ক্যালিব্রেশন বাণিজ্যিক লাইনের জন্য বাধ্যতামূলক।",
+          },
+          {
+            question: "Commercial kitchen safety compliance requires certified ABC dry chemical powder wheeled extinguishers and clear 3-meter egress corridors.",
+            questionBn: "বাণিজ্যিক রান্নাঘরের অগ্নি নিরাপত্তা সম্মতির জন্য ৫০ কেজি চাকাযুক্ত এবিসি এক্সটিংগুইশার এবং ৩ মিটার জরুরি বহির্গমন করিডোর নিশ্চিতকরণ বাধ্যতামূলক।",
+            options: ["True", "False"],
+            optionsBn: ["সত্য", "মিথ্যা"],
+            correctAnswer: 0,
+            explanation:
+              "Commercial facilities must maintain wheeled heavy dry powder extinguishers and clear emergency exit corridors at all times.",
+            explanationBn:
+              "বাণিজ্যিক রান্নাঘরে চাকাযুক্ত হেভি এক্সটিংগুইশার এবং ৩ মিটার জরুরি বহির্গমন করিডোর থাকা বাধ্যতামূলক।",
+          },
+        ],
+      },
     },
   ],
 };
 
 // =========================================================================
-// 3. QUIZZES (Question Banks with Single, Multi, True/False, 70% pass, timer)
+// HELPER: Convert Curriculum Quizzes to Global Quiz QuestionBank
 // =========================================================================
-const freeQuizData = {
-  courseId: "1",
-  title: "LPG Household Safety Assessment & Certification Exam",
-  titleBn: "গৃহস্থালি এলপিজি নিরাপত্তা মূল্যায়ন ও সনদপত্র পরীক্ষা",
-  description:
-    "Comprehensive assessment testing your practical knowledge on LPG properties, leak emergency containment, zero-spark cross-ventilation, and extinguisher handling.",
-  durationMinutes: 15,
-  timerEnabled: true,
-  passPercentage: 70,
-  questionsPerQuiz: 6,
-  cooldownMinutes: 15,
-  shuffleOptions: true,
-  isPublished: true,
-  questionBank: [
-    {
-      id: "q1_1",
-      question: "Is LPG vapor heavier or lighter than atmospheric ambient air?",
-      questionBn: "এলপিজি বাষ্প সাধারণ বায়ুমণ্ডলের বাতাসের চেয়ে ভারী নাকি হালকা?",
-      type: "single",
-      points: 1,
-      options: [
-        {
-          id: "opt_1_1",
-          text: "1.5 to 2.0 times heavier (it pools along the floor and depressions)",
-          textBn: "১.৫ থেকে ২.০ গুণ ভারী (মেঝে ও নিচু স্থানে জমা হয়)",
-          isCorrect: true,
-        },
-        {
-          id: "opt_1_2",
-          text: "Much lighter (it floats directly to the ceiling like natural methane)",
-          textBn: "অনেক হালকা (মিথেন গ্যাসের মতো সোজা ছাদে উঠে যায়)",
-          isCorrect: false,
-        },
-        {
-          id: "opt_1_3",
-          text: "Exactly the same density as ambient room air",
-          textBn: "বাতাসের ঘনত্বের একদম সমান",
-          isCorrect: false,
-        },
-        {
-          id: "opt_1_4",
-          text: "It dissolves instantly in air without settling anywhere",
-          textBn: "বাতাসে সাথে সাথে মিশে গিয়ে কোনো স্থানে জমে না",
-          isCorrect: false,
-        },
-      ],
-      explanation:
-        "LPG vapor has a vapor density of approximately 1.5 - 2.0 relative to air, causing it to sink and accumulate at floor level.",
-      explanationBn:
-        "এলপিজি গ্যাস বাতাসের চেয়ে দেড় থেকে দুই গুণ ভারী হওয়ায় লিকেজ হলে এটি মেঝের দিকে নিচু হয়ে জমা হয়।",
-    },
-    {
-      id: "q1_2",
-      question:
-        "What should you STRICTLY AVOID doing immediately upon smelling a strong gas leak in your kitchen?",
-      questionBn:
-        "রান্নাঘরে গ্যাসের তীব্র গন্ধ পেলে নিচের কোন কাজটি কোনো অবস্থাতেই করা যাবে না?",
-      type: "single",
-      points: 1,
-      options: [
-        {
-          id: "opt_2_1",
-          text: "Turning electric light switches or exhaust fans ON or OFF",
-          textBn: "বৈদ্যুতিক বাতি বা এক্সহস্ট ফ্যানের সুইচ অন বা অফ করা",
-          isCorrect: true,
-        },
-        {
-          id: "opt_2_2",
-          text: "Opening all kitchen doors and windows for cross-ventilation",
-          textBn: "বাতাস চলাচলের জন্য রান্নাঘরের সব দরজা-জানালা খুলে দেওয়া",
-          isCorrect: false,
-        },
-        {
-          id: "opt_2_3",
-          text: "Turning off the cylinder regulator knob if safe to reach",
-          textBn: "সম্ভব হলে রেগুলেটরের নব ঘুরিয়ে সংযোগ বন্ধ করা",
-          isCorrect: false,
-        },
-        {
-          id: "opt_2_4",
-          text: "Evacuating children and family members to an open outdoor space",
-          textBn: "পরিবারের সদস্যদের নিরাপদ উন্মুক্ত স্থানে সরিয়ে নেওয়া",
-          isCorrect: false,
-        },
-      ],
-      explanation:
-        "Flipping electrical switches creates tiny micro-sparks inside the switch contact points that can trigger an instant LPG gas explosion.",
-      explanationBn:
-        "বৈদ্যুতিক সুইচ অন বা অফ করার সময় সুইচের ভেতরে যে ছোট স্ফুলিঙ্গ তৈরি হয় তা আবদ্ধ গ্যাসে তাৎক্ষণিক বিস্ফোরণ ঘটাতে পারে।",
-    },
-    {
-      id: "q1_3",
-      question:
-        "Which of the following are safe practices when handling household LPG cylinders? (Select all that apply)",
-      questionBn:
-        "গৃহস্থালি এলপিজি সিলিন্ডার ব্যবহারের ক্ষেত্রে নিচের কোনগুলো সঠিক নিরাপত্তা অনুশীলন? (সবগুলো প্রযোজ্য উত্তর নির্বাচন করুন)",
-      type: "multiple",
-      points: 1,
-      options: [
-        {
-          id: "opt_3_1",
-          text: "Always keeping the cylinder standing upright on a flat surface",
-          textBn: "সিলিন্ডার সবসময় সমতল মেঝেতে খাড়াভাবে সোজা রাখা",
-          isCorrect: true,
-        },
-        {
-          id: "opt_3_2",
-          text: "Testing for leaks using liquid soapy water lather instead of a matchstick",
-          textBn: "আগুনের পরিবর্তে সাবানের ফেনা বা সাবান-পানি দিয়ে লিকেজ পরীক্ষা করা",
-          isCorrect: true,
-        },
-        {
-          id: "opt_3_3",
-          text: "Igniting the match/lighter first before turning on the burner knob",
-          textBn: "চুলার নব ঘোরানোর আগে দিয়াশলাই বা লাইটার জ্বালিয়ে প্রস্তুত রাখা",
-          isCorrect: true,
-        },
-        {
-          id: "opt_3_4",
-          text: "Storing spare cylinders sideways under low kitchen cabinets",
-          textBn: "অতিরিক্ত সিলিন্ডার রান্নাঘরের ক্যাবিনেটের নিচে কাত করে রাখা",
-          isCorrect: false,
-        },
-      ],
-      explanation:
-        "Cylinders must stand upright, tested with soap froth, and lighted before turning gas on. Never store cylinders sideways in cabinets.",
-      explanationBn:
-        "সিলিন্ডার সর্বদা সোজা রাখা, সাবানের ফেনা দিয়ে টেস্ট করা এবং নব খোলার আগেই আগুন প্রস্তুত রাখা সঠিক নিয়ম।",
-    },
-    {
-      id: "q1_4",
-      question:
-        "Pure commercial LPG has a strong natural foul odor of its own without any chemical additives.",
-      questionBn:
-        "বিশুদ্ধ এলপিজি গ্যাসে কোনো কেমিক্যাল না মিশালেও এটি প্রাকৃতিকভাবেই তীব্র দুর্গন্ধযুক্ত।",
-      type: "true_false",
-      points: 1,
-      options: [
-        {
-          id: "opt_4_1",
-          text: "True (সত্য)",
-          textBn: "সত্য",
-          isCorrect: false,
-        },
-        {
-          id: "opt_4_2",
-          text: "False (মিথ্যা - ইথাইল মারক্যাপ্টান মিশিয়ে তীব্র গন্ধ তৈরি করা হয়)",
-          textBn: "মিথ্যা (ইথাইল মারক্যাপ্টান মিশিয়ে কৃত্রিম তীব্র গন্ধ তৈরি করা হয়)",
-          isCorrect: true,
-        },
-      ],
-      explanation:
-        "Pure LPG is naturally odorless and colorless. An odorant called Ethyl Mercaptan is added deliberately to detect leaks.",
-      explanationBn:
-        "বিশুদ্ধ এলপিজি সম্পূর্ণ গন্ধহীন। লিকেজ হলে যাতে সাধারণ মানুষ গন্ধ পায় সেজন্য ইথাইল মারক্যাপ্টান নামক তীব্র গন্ধযুক্ত যৌগ যোগ করা হয়।",
-    },
-    {
-      id: "q1_5",
-      question:
-        "What is the official nationwide hotline number for emergency LPG assistance and safety dispatch in Bangladesh?",
-      questionBn:
-        "বাংলাদেশে জরুরি এলপিজি সহায়তা ও নিরাপত্তা প্রটোকলের জন্য অনুমোদিত জাতীয় হেল্পলাইন নম্বর কোনটি?",
-      type: "single",
-      points: 1,
-      options: [
-        {
-          id: "opt_5_1",
-          text: "16137 (National LPG Emergency Helpline)",
-          textBn: "১৬১৩৭ (জাতীয় এলপিজি জরুরি হেল্পলাইন)",
-          isCorrect: true,
-        },
-        {
-          id: "opt_5_2",
-          text: "109",
-          textBn: "১০৯",
-          isCorrect: false,
-        },
-        {
-          id: "opt_5_3",
-          text: "333",
-          textBn: "৩৩৩",
-          isCorrect: false,
-        },
-        {
-          id: "opt_5_4",
-          text: "16247",
-          textBn: "১৬২৪৭",
-          isCorrect: false,
-        },
-      ],
-      explanation:
-        "16137 is the dedicated 24/7 National LPG Emergency Helpline for swift containment advice and courier dispatch.",
-      explanationBn:
-        "১৬১৩৭ হলো ২৪/৭ জাতীয় এলপিজি জরুরি হেল্পলাইন যা যেকোনো গ্যাস সংক্রান্ত জরুরি সহায়তায় সেবা প্রদান করে।",
-    },
-    {
-      id: "q1_6",
-      question:
-        "Using a burning matchstick to detect small gas leaks around a cylinder neck is an acceptable practice if done quickly.",
-      questionBn:
-        "খুব দ্রুত করলে সিলিন্ডারের নেকের কাছে গ্যাস লিকেজ চেক করার জন্য জ্বলন্ত ম্যাচকাঠি ব্যবহার করা যেতে পারে।",
-      type: "true_false",
-      points: 1,
-      options: [
-        {
-          id: "opt_6_1",
-          text: "True (সত্য)",
-          textBn: "সত্য",
-          isCorrect: false,
-        },
-        {
-          id: "opt_6_2",
-          text: "False (মিথ্যা - এটি মারাত্মক বিপজ্জনক ও সম্পূর্ণরূপে নিষিদ্ধ)",
-          textBn: "মিথ্যা (এটি মারাত্মক বিপজ্জনক ও সম্পূর্ণরূপে নিষিদ্ধ)",
-          isCorrect: true,
-        },
-      ],
-      explanation:
-        "NEVER bring an open flame near suspected gas leakage. This can ignite the escaping vapor instantaneously and cause catastrophic fire.",
-      explanationBn:
-        "কোনো অবস্থাতেই গ্যাসের লিকেজ চেক করতে আগুন ব্যবহার করা যাবে না। সাবান-পানি ব্যবহার করাই একমাত্র অনুমোদিত নিরাপদ উপায়।",
-    },
-  ],
-};
+function buildGlobalQuizData(courseData) {
+  const allQuestions = [];
+  courseData.curriculum.forEach((mod, modIdx) => {
+    if (mod.quiz?.questions) {
+      mod.quiz.questions.forEach((q, qIdx) => {
+        const isTrueFalse = q.options.length === 2;
+        const formattedOptions = q.options.map((optText, optIdx) => ({
+          id: `opt_m${modIdx + 1}_q${qIdx + 1}_${optIdx + 1}`,
+          text: optText,
+          textBn: q.optionsBn?.[optIdx] || optText,
+          isCorrect: q.correctAnswer === optIdx,
+        }));
 
-const paidQuizData = {
-  courseId: "2",
-  title: "Commercial LPG Safety & Compliance Certification Assessment",
-  titleBn: "বাণিজ্যিক এলপিজি নিরাপত্তা ও সংবিধিবদ্ধ সম্মতি মূল্যায়ন",
-  description:
-    "Rigorous professional examination covering Gas Cylinder Rules 1991 (amended 2004), commercial manifold sizing, automatic solenoid interlocks, and DoE audit inspection codes.",
-  durationMinutes: 15,
-  timerEnabled: true,
-  passPercentage: 70,
-  questionsPerQuiz: 6,
-  cooldownMinutes: 15,
-  shuffleOptions: true,
-  isPublished: true,
-  questionBank: [
-    {
-      id: "qp_1",
-      question:
-        "Under the Gas Cylinder Rules 1991, where must commercial multi-cylinder manifold banks be legally situated?",
-      questionBn:
-        "গ্যাস সিলিন্ডার বিধিমালা ১৯৯১ অনুযায়ী বাণিজ্যিক মাল্টি-সিলিন্ডার ব্যাংক আইনত কোথায় স্থাপন করতে হবে?",
-      type: "single",
-      points: 1,
-      options: [
-        {
-          id: "opt_p1_1",
-          text: "Outside cooking areas in a well-ventilated, non-combustible shelter with natural louvers",
-          textBn: "রান্নাঘরের বাইরে প্রাকৃতিক বায়ু চলাচলযুক্ত অগ্নিনিরোধক উন্মুক্ত শেডে",
-          isCorrect: true,
-        },
-        {
-          id: "opt_p1_2",
-          text: "Directly under the commercial cooking ranges for shortest pipe runs",
-          textBn: "পাইপ ছোট করার জন্য সরাসরি চুলার নিচে ক্যাবিনেটে",
-          isCorrect: false,
-        },
-        {
-          id: "opt_p1_3",
-          text: "In the central basement storage alongside diesel generators",
-          textBn: "জেনারেটরের সাথে ভূগর্ভস্থ বেজমেন্টে",
-          isCorrect: false,
-        },
-        {
-          id: "opt_p1_4",
-          text: "Inside the food preparation pantry room behind closed doors",
-          textBn: "রান্নাঘরের প্যান্ট্রি রুমে দরজার পেছনে",
-          isCorrect: false,
-        },
-      ],
-      explanation:
-        "Statutory codes prohibit multi-cylinder manifold banks inside cooking areas. They must be placed outdoors in ventilated masonry enclosures.",
-      explanationBn:
-        "সংবিধিবদ্ধ আইন অনুযায়ী একাধিক সিলিন্ডার ম্যানিফোল্ড ব্যাংক কখনোই রান্নাঘরের ভেতরে রাখা যাবে না, অবশ্যই বাইরে খোলা শেডে রাখতে হবে।",
-    },
-    {
-      id: "qp_2",
-      question:
-        "Which of the following safety automated systems are mandatory for commercial restaurant LPG installations? (Select all that apply)",
-      questionBn:
-        "বাণিজ্যিক রেস্তোরাঁ ও হোটেলের ক্ষেত্রে নিচের কোন স্বয়ংক্রিয় নিরাপত্তা ব্যবস্থাগুলো থাকা আবশ্যক? (সবগুলো প্রযোজ্য উত্তর নির্বাচন করুন)",
-      type: "multiple",
-      points: 1,
-      options: [
-        {
-          id: "opt_p2_1",
-          text: "Automated Solenoid Emergency Shut-off Valve interlocked to gas sensors",
-          textBn: "গ্যাস সেন্সরের সাথে যুক্ত স্বয়ংক্রিয় সোলেনয়েড শাট-অফ ভালভ",
-          isCorrect: true,
-        },
-        {
-          id: "opt_p2_2",
-          text: "Gas sensors calibrated to trigger at 10-20% Lower Explosive Limit (LEL)",
-          textBn: "১০-২০% এলইএল গ্যাস ঘনত্বে স্বয়ংক্রিয়ভাবে সক্রিয় হওয়া গ্যাস সেন্সর",
-          isCorrect: true,
-        },
-        {
-          id: "opt_p2_3",
-          text: "Kitchen mechanical exhaust hood electrical interlock system",
-          textBn: "এক্সহস্ট ফ্যান চালু না থাকলে গ্যাস সরবরাহ বন্ধ রাখার ইন্টারলক ব্যবস্থা",
-          isCorrect: true,
-        },
-        {
-          id: "opt_p2_4",
-          text: "Flexible plastic garden water hoses connecting commercial burners",
-          textBn: "চুলার সাথে সাধারণ প্লাস্টিকের পানির পাইপ সংযোগ",
-          isCorrect: false,
-        },
-      ],
-      explanation:
-        "Commercial codes require certified solenoid shut-off valves, 10-20% LEL calibrated sensors, and kitchen exhaust interlocks.",
-      explanationBn:
-        "বাণিজ্যিক প্রতিষ্ঠানে সোলেনয়েড ভালভ, সেন্সর এবং কিচেন হুড ইন্টারলক সিস্টেম থাকা আইনত বাধ্যতামূলক।",
-    },
-    {
-      id: "qp_3",
-      question:
-        "At what percentage of Lower Explosive Limit (LEL) should commercial gas detection systems trigger an automatic solenoid shut-off?",
-      questionBn:
-        "বাণিজ্যিক গ্যাস ডিটেকশন সিস্টেমে লোয়ার এক্সপ্লোসিভ লিমিটের (LEL) শতকরা কত ঘনত্বে অটো শাট-অফ সক্রিয় হওয়া উচিত?",
-      type: "single",
-      points: 1,
-      options: [
-        {
-          id: "opt_p3_1",
-          text: "Between 10% to 20% LEL",
-          textBn: "১০% থেকে ২০% LEL এর মধ্যে",
-          isCorrect: true,
-        },
-        {
-          id: "opt_p3_2",
-          text: "At 100% LEL when flame is already visible",
-          textBn: "১০০% LEL এ যখন আগুন ধরে যায়",
-          isCorrect: false,
-        },
-        {
-          id: "opt_p3_3",
-          text: "Above 85% LEL",
-          textBn: "৮৫% LEL এর বেশি হলে",
-          isCorrect: false,
-        },
-        {
-          id: "opt_p3_4",
-          text: "LEL monitoring is not applicable to commercial kitchens",
-          textBn: "রেস্তোরাঁর রান্নাঘরে এলইএল পরিমাপ প্রযোজ্য নয়",
-          isCorrect: false,
-        },
-      ],
-      explanation:
-        "Sensors trigger safety solenoids at 10% to 20% of LEL to isolate gas long before reaching combustible concentration (100% LEL).",
-      explanationBn:
-        "বিস্ফোরণ ঘটার অনেক আগেই (১০% থেকে ২০% LEL ঘনত্বে) সেন্সর সংকেত পাঠিয়ে গ্যাস লাইন সম্পূর্ণ লক করে দেয়।",
-    },
-    {
-      id: "qp_4",
-      question:
-        "It is legally permissible to route commercial LPG gas pipelines through air conditioning return ducts or elevator shafts.",
-      questionBn:
-        "বাণিজ্যিক এলপিজি গ্যাস পাইপলাইন শীতাতপ নিয়ন্ত্রণকারী (এসি) ডাক্ট বা লিফটের শ্যাফটের মধ্য দিয়ে নিয়ে যাওয়া আইনত বৈধ।",
-      type: "true_false",
-      points: 1,
-      options: [
-        {
-          id: "opt_p4_1",
-          text: "True (সত্য)",
-          textBn: "সত্য",
-          isCorrect: false,
-        },
-        {
-          id: "opt_p4_2",
-          text: "False (মিথ্যা - এটি সম্পূর্ণ নিষিদ্ধ ও মারাত্মক আইন লঙ্ঘন)",
-          textBn: "মিথ্যা (এটি সম্পূর্ণ নিষিদ্ধ ও মারাত্মক আইন লঙ্ঘন)",
-          isCorrect: true,
-        },
-      ],
-      explanation:
-        "Statutory building codes strictly prohibit running gas pipes through ventilation ducts, elevator shafts, or unventilated false ceilings.",
-      explanationBn:
-        "এসি ডাক্ট বা লিফট শ্যাফটের মধ্য দিয়ে গ্যাস পাইপ নেওয়া সম্পূর্ণ নিষিদ্ধ, কারণ লিকেজ হলে পুরো ভবনে মুহূর্তেই গ্যাস ছড়িয়ে পড়তে পারে।",
-    },
-    {
-      id: "qp_5",
-      question:
-        "How frequently must commercial LPG Pressure Relief Valves (PRV) and high-pressure regulators undergo statutory testing & recalibration?",
-      questionBn:
-        "বাণিজ্যিক এলপিজি প্রেসার রিলিফ ভালভ (PRV) এবং রেগুলেটর কত সময় পর পর সংবিধিবদ্ধভাবে পরীক্ষা ও ক্যালিব্রেশন করতে হয়?",
-      type: "single",
-      points: 1,
-      options: [
-        {
-          id: "opt_p5_1",
-          text: "Quarterly inspection with annual certified hydrostatic calibration",
-          textBn: "প্রতি ৩ মাস অন্তর পরিদর্শন ও বাৎসরিক সার্টিফাইড ক্যালিব্রেশন",
-          isCorrect: true,
-        },
-        {
-          id: "opt_p5_2",
-          text: "Never, regulators do not require inspection",
-          textBn: "কখনোই নয়, এগুলো পরীক্ষার প্রয়োজন নেই",
-          isCorrect: false,
-        },
-        {
-          id: "opt_p5_3",
-          text: "Only once every 15 years",
-          textBn: "১৫ বছরে মাত্র একবার",
-          isCorrect: false,
-        },
-        {
-          id: "opt_p5_4",
-          text: "Only after an active explosion occurs",
-          textBn: "দুর্ঘটনা ঘটার পর মাত্র একবার",
-          isCorrect: false,
-        },
-      ],
-      explanation:
-        "Industry standards dictate quarterly operational log audits and annual certified hydrostatic pressure safety release testing.",
-      explanationBn:
-        "কোয়ার্টারলি চেকলিস্ট অডিট এবং বাৎসরিক সার্টিফাইড হাইড্রোস্ট্যাটিক ক্যালিব্রেশন বাণিজ্যিক লাইনের জন্য বাধ্যতামূলক।",
-    },
-    {
-      id: "qp_6",
-      question:
-        "Emergency shut-off pull valves in commercial restaurant manifold rooms must be clearly accessible and never obstructed by inventory crates.",
-      questionBn:
-        "বাণিজ্যিক রেস্তোরাঁর ম্যানিফোল্ড রুমে জরুরি শাট-অফ ভালভ সবসময় বাধাহীন ও সহজে পৌঁছানো যায় এমন অবস্থায় রাখতে হবে।",
-      type: "true_false",
-      points: 1,
-      options: [
-        {
-          id: "opt_p6_1",
-          text: "True (সত্য - জরুরি শাট-অফ ভালভ সব সময় বাধাহীন রাখতে হবে)",
-          textBn: "সত্য (জরুরি শাট-অফ ভালভ সব সময় বাধাহীন রাখতে হবে)",
-          isCorrect: true,
-        },
-        {
-          id: "opt_p6_2",
-          text: "False (মিথ্যা)",
-          textBn: "মিথ্যা",
-          isCorrect: false,
-        },
-      ],
-      explanation:
-        "Clear egress and instant access to emergency manual shut-off valves is mandatory for fire inspection compliance.",
-      explanationBn:
-        "জরুরি ভালভের সামনে মালামাল বা বক্স রেখে রাস্তা আটকে রাখা বড় ধরনের নিরাপত্তা ব্যত্যয় ও সম্পূর্ণ নিষিদ্ধ।",
-    },
-  ],
-};
+        allQuestions.push({
+          id: `q_c${courseData.courseId}_m${modIdx + 1}_${qIdx + 1}`,
+          question: q.question,
+          questionBn: q.questionBn || q.question,
+          type: isTrueFalse ? "true_false" : "single",
+          options: formattedOptions,
+          explanation: q.explanation || "",
+          explanationBn: q.explanationBn || "",
+          points: 1,
+        });
+      });
+    }
+  });
+
+  return {
+    courseId: courseData.courseId,
+    title: `${courseData.title} - Complete Assessment Quiz`,
+    titleBn: `${courseData.titleBn} - সম্পূর্ণ মূল্যায়ন কুইজ`,
+    description: `Official comprehensive certification examination for ${courseData.title}. Pass with 70% or higher to verify mastery and earn your certificate.`,
+    durationMinutes: 20,
+    timerEnabled: true,
+    passPercentage: 70,
+    questionsPerQuiz: allQuestions.length,
+    cooldownMinutes: 15,
+    shuffleOptions: true,
+    isPublished: true,
+    questionBank: allQuestions,
+    questions: allQuestions,
+  };
+}
 
 // =========================================================================
 // RUN SEEDING SCRIPT
@@ -903,12 +886,12 @@ async function runSeed() {
     console.log(`[Seed] Connecting to MongoDB: ${mongoUri}`);
     await mongoose.connect(mongoUri);
 
-    console.log("[Seed] 1. Purging old courses and quizzes collections...");
+    console.log("[Seed] 1. Purging old courses, quizzes and certificates collections...");
     await Course.deleteMany({});
     await Quiz.deleteMany({});
+    await Certificate.deleteMany({});
 
-    // Reset user enrolled courses test state so testing starts completely clean
-    console.log("[Seed] 2. Resetting test users enrolled courses progress...");
+    console.log("[Seed] 2. Resetting all users' enrolled courses and test progress...");
     await User.updateMany(
       {},
       {
@@ -918,31 +901,37 @@ async function runSeed() {
       }
     );
 
-    console.log("[Seed] 3. Inserting Free Course (3 modules: 3, 4, 4 videos)...");
+    console.log("[Seed] 3. Inserting Free Course (Module 1: 3 vids + 1.4 Quiz, Module 2: 4 vids + 2.5 Quiz, Module 3: 1 vid + 3.2 Final Exam)...");
     const createdFreeCourse = await Course.create(freeCourseData);
     console.log(
       `   -> Created Free Course: ID ${createdFreeCourse.courseId} ("${createdFreeCourse.title}")`
     );
 
-    console.log("[Seed] 4. Inserting Paid Course (3 modules: 3, 4, 4 videos)...");
+    console.log("[Seed] 4. Inserting Paid Course (Module 1: 3 vids + 1.4 Quiz, Module 2: 4 vids + 2.5 Quiz, Module 3: 1 vid + 3.2 Final Exam)...");
     const createdPaidCourse = await Course.create(paidCourseData);
     console.log(
       `   -> Created Paid Course: ID ${createdPaidCourse.courseId} ("${createdPaidCourse.title}")`
     );
 
-    console.log("[Seed] 5. Inserting Free Course Quiz & Question Bank...");
-    await Quiz.create(freeQuizData);
-    console.log("   -> Created Free Quiz with Question Bank (6 questions)");
+    console.log("[Seed] 5. Creating Global Quiz Collections for Free and Paid Courses...");
+    const freeGlobalQuiz = buildGlobalQuizData(freeCourseData);
+    await Quiz.create(freeGlobalQuiz);
+    console.log(`   -> Created Free Course Global Quiz (${freeGlobalQuiz.questionBank.length} questions in bank)`);
 
-    console.log("[Seed] 6. Inserting Paid Course Quiz & Question Bank...");
-    await Quiz.create(paidQuizData);
-    console.log("   -> Created Paid Quiz with Question Bank (6 questions)");
+    const paidGlobalQuiz = buildGlobalQuizData(paidCourseData);
+    await Quiz.create(paidGlobalQuiz);
+    console.log(`   -> Created Paid Course Global Quiz (${paidGlobalQuiz.questionBank.length} questions in bank)`);
 
     console.log("\n========================================================");
-    console.log("SUCCESS! Database cleanly seeded with 2 full courses:");
-    console.log("1. Free Course: 3 Modules (3, 4, 4 videos = 11 lessons) + Quiz Exam + Certificate");
-    console.log("2. Paid Course: 3 Modules (3, 4, 4 videos = 11 lessons) + Quiz Exam + Certificate");
-    console.log("All sample videos linked to: " + sampleVideoUrl);
+    console.log("SUCCESS! Seeding completed with 2 standard structured courses:");
+    console.log("1. FREE Course: 'LPG Household Safety & Emergency Handling Masterclass'");
+    console.log("   - Module 1: 3 lessons (1.1, 1.2, 1.3) + 1.4 Safety Quiz (Pass 70% required to unlock Module 2)");
+    console.log("   - Module 2: 4 lessons (2.1, 2.2, 2.3, 2.4) + 2.5 Kitchen Operations Quiz (Pass 70% required to unlock Module 3)");
+    console.log("   - Module 3: 1 lesson (3.1) + 3.2 Final Certification Exam (Pass 70% auto-generates official Certificate)");
+    console.log("\n2. PAID Course: 'Commercial LPG Safety Auditing & Regulatory Compliance'");
+    console.log("   - Module 1: 3 lessons (1.1, 1.2, 1.3) + 1.4 Engineering Quiz (FREE preview for registered users)");
+    console.log("   - Module 2: 4 lessons (2.1, 2.2, 2.3, 2.4) + 2.5 Interlock Systems Quiz (Paid / Subscriber locked)");
+    console.log("   - Module 3: 1 lesson (3.1) + 3.2 Final Certification Exam (Pass 70% auto-generates official Certificate)");
     console.log("========================================================\n");
 
     await mongoose.disconnect();

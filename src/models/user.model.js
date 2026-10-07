@@ -158,6 +158,15 @@ const userSchema = new Schema(
         quizPassed: { type: Boolean, default: false },
         lastQuizAttemptAt: { type: Date },
         quizCooldownUntil: { type: Date },
+        moduleQuizResults: [
+          {
+            moduleIndex: { type: Number, required: true },
+            scorePercent: { type: Number, default: 0 },
+            isPassed: { type: Boolean, default: false },
+            submittedAnswers: { type: Schema.Types.Mixed, default: {} },
+            attemptedAt: { type: Date, default: Date.now },
+          },
+        ],
         status: { type: String, enum: ["active", "completed"], default: "active" },
       },
     ],

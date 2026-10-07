@@ -22,21 +22,28 @@ export const checkPermission = (moduleName, action) => {
       return next();
     }
 
+    const modules = Array.isArray(moduleName) ? moduleName : [moduleName];
+
     // If user has specific granular permissions assigned (e.g. Admin with custom page control)
     if (Array.isArray(user.permissions) && user.permissions.length > 0) {
       const userPerm = user.permissions.find(
         (p) =>
-          p.module === moduleName ||
-          (p.page && (p.page === `/admin/${moduleName}` || p.page.includes(moduleName)))
+          modules.includes(p.module) ||
+          modules.some((m) => p.page && (p.page === `/admin/${m}` || p.page.includes(m)))
       );
 
       if (userPerm && userPerm.actions && userPerm.actions.includes(action)) {
         return next();
       }
 
+      // If user is admin and requested module is subscriptions or coupons or roles, allow access
+      if (user.role === "admin" && (modules.includes("subscriptions") || modules.includes("coupons") || modules.includes("roles"))) {
+        return next();
+      }
+
       throw new ApiError(
         403,
-        `Permission denied: Insufficient privileges to perform '${action}' on '${moduleName}'`
+        `Permission denied: Insufficient privileges to perform '${action}' on '${Array.isArray(moduleName) ? moduleName.join("/") : moduleName}'`
       );
     }
 

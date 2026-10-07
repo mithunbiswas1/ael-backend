@@ -48,7 +48,7 @@ const subscriptionSchema = new Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["sslcommerz", "bkash", "nagad", "card", "bank_transfer"],
+      enum: ["sslcommerz", "bkash", "nagad", "card", "bank_transfer", "gift_coupon", "manual_admin"],
       default: "sslcommerz",
     },
     paymentGateway: {

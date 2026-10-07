@@ -22,6 +22,7 @@ import directoryRouter from "./routes/directory.routes.js";
 import marketUpdateRouter from "./routes/marketUpdate.routes.js";
 import newsletterRouter from "./routes/newsletter.routes.js";
 import adminRouter from "./routes/admin.routes.js";
+import couponRouter from "./routes/coupon.routes.js";
 
 // __dirname setup for ES Module
 const __filename = fileURLToPath(import.meta.url);
@@ -88,5 +89,6 @@ app.use("/api/v1/directory", directoryRouter);
 app.use("/api/v1/market-updates", marketUpdateRouter);
 app.use("/api/v1/newsletter", newsletterRouter);
 app.use("/api/v1/admin", adminRouter);
+app.use("/api/v1/coupons", couponRouter);
 
 export { app };

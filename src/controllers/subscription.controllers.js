@@ -4,6 +4,7 @@ import { Subscription } from "../models/subscription.model.js";
 import { SubscriptionPlan } from "../models/subscriptionPlan.model.js";
 import { User } from "../models/user.model.js";
 import { Course } from "../models/course.model.js";
+import { Coupon } from "../models/coupon.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -156,6 +157,7 @@ export const initiateCheckout = asyncHandler(async (req, res) => {
     email,
     companyName,
     courseId,
+    couponCode,
   } = req.body;
 
   const customerFullName = fullName || req.user?.fullName || "AEL Student";
@@ -233,9 +235,62 @@ export const initiateCheckout = asyncHandler(async (req, res) => {
     }
   }
 
+  // Authoritative Coupon Validation & Discount Calculation
+  let appliedCoupon = null;
+  let discountAmount = 0;
+
+  if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+    const normCode = couponCode.trim().toUpperCase();
+    const foundCoupon = await Coupon.findOne({ code: normCode, isActive: true });
+
+    if (foundCoupon) {
+      let isCouponValid = true;
+
+      if (!foundCoupon.isNeverExpires) {
+        if (foundCoupon.validFrom && now < new Date(foundCoupon.validFrom)) isCouponValid = false;
+        if (foundCoupon.validUntil && now > new Date(foundCoupon.validUntil)) isCouponValid = false;
+      }
+
+      if (foundCoupon.usageLimit && foundCoupon.usageCount >= foundCoupon.usageLimit) {
+        isCouponValid = false;
+      }
+
+      if (isCouponValid) {
+        appliedCoupon = foundCoupon;
+
+        // Calculate discount
+        if (foundCoupon.discountType === "free_access") {
+          discountAmount = amount;
+        } else if (foundCoupon.discountType === "percentage") {
+          let calc = Math.round((amount * foundCoupon.discountValue) / 100);
+          if (foundCoupon.maxDiscountAmount && calc > foundCoupon.maxDiscountAmount) {
+            calc = foundCoupon.maxDiscountAmount;
+          }
+          discountAmount = Math.min(amount, calc);
+        } else if (foundCoupon.discountType === "fixed") {
+          discountAmount = Math.min(amount, Math.round(foundCoupon.discountValue));
+        }
+
+        // Whole life gift feature: If coupon grants lifetime access, override subscription duration
+        if (foundCoupon.isLifetimeAccess && !courseId) {
+          billingCycle = "lifetime";
+          startDate = now;
+          expiryDate = new Date(now.getTime() + 100 * 365 * 24 * 60 * 60 * 1000);
+        }
+      }
+    }
+  }
+
   const vat = 0;
-  const grandTotal = amount;
+  const grandTotal = Math.max(0, amount - discountAmount);
   const transactionId = `TXN-SSL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+  const resolvedPaymentMethod =
+    grandTotal === 0 ? "gift_coupon" : paymentMethod;
+  const resolvedPaymentGateway =
+    grandTotal === 0
+      ? "Gift Voucher / Coupon Free Access"
+      : "Mock Instant Gateway (Testing Mode)";
 
   const subscription = await Subscription.create({
     transactionId,
@@ -245,8 +300,8 @@ export const initiateCheckout = asyncHandler(async (req, res) => {
     amount,
     vat,
     grandTotal,
-    paymentMethod,
-    paymentGateway: "Mock Instant Gateway (Testing Mode)",
+    paymentMethod: resolvedPaymentMethod,
+    paymentGateway: resolvedPaymentGateway,
     status: "paid",
     startDate,
     expiryDate,
@@ -309,6 +364,21 @@ export const initiateCheckout = asyncHandler(async (req, res) => {
     }
 
     await userToUpdate.save();
+  }
+
+  // Record coupon redemption
+  if (appliedCoupon) {
+    appliedCoupon.usageCount = (appliedCoupon.usageCount || 0) + 1;
+    if (!appliedCoupon.usedBy) appliedCoupon.usedBy = [];
+    appliedCoupon.usedBy.push({
+      userId: userToUpdate?._id || req.user?._id,
+      userEmail: email || req.user?.email || userToUpdate?.email || "",
+      userPhone: customerPhone,
+      transactionId,
+      discountGiven: discountAmount,
+      usedAt: now,
+    });
+    await appliedCoupon.save().catch(() => {});
   }
 
   // Dispatch automated invoice email asynchronously to customer
