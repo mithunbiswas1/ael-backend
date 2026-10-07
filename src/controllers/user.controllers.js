@@ -289,7 +289,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 const getUserProfile = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
-  const user = await User.findById(userId).select("-password -refreshToken");
+  const user = await User.findById(userId).select("-password -refreshToken -notes");
 
   if (!user) {
     throw new ApiError(404, "User not found");
@@ -577,6 +577,7 @@ const updateUserByAdmin = asyncHandler(async (req, res) => {
     country,
     postal_code,
     permissions,
+    notes,
   } = req.body;
 
   const user = await User.findById(userId);
@@ -636,6 +637,7 @@ const updateUserByAdmin = asyncHandler(async (req, res) => {
     ...(country && { country }),
     ...(postal_code && { postal_code }),
     ...(parsedPermissions !== undefined && { permissions: parsedPermissions }),
+    ...(notes !== undefined && { notes: typeof notes === "string" ? notes.trim() : notes }),
   };
 
   const updatedUser = await User.findByIdAndUpdate(

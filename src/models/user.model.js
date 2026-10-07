@@ -63,6 +63,11 @@ const userSchema = new Schema(
         ],
       },
     ],
+    notes: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     description: {
       type: String,
       default: "",
