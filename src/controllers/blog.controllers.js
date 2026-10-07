@@ -366,16 +366,16 @@ const DEFAULT_BLOG_CATEGORIES = [
  * Public & Admin: Get all blog categories
  */
 export const getBlogCategories = asyncHandler(async (req, res) => {
-  let categories = await BlogCategory.find().sort({ createdAt: 1 });
+  let categories = await BlogCategory.find().sort({ createdAt: -1 });
 
   // Auto-seed default categories if collection is empty
   if (categories.length === 0) {
     try {
       await BlogCategory.insertMany(DEFAULT_BLOG_CATEGORIES);
-      categories = await BlogCategory.find().sort({ createdAt: 1 });
+      categories = await BlogCategory.find().sort({ createdAt: -1 });
     } catch {
       // If concurrent insert occurred, fetch again
-      categories = await BlogCategory.find().sort({ createdAt: 1 });
+      categories = await BlogCategory.find().sort({ createdAt: -1 });
     }
   }
 

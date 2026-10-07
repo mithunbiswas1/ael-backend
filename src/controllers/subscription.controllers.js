@@ -14,11 +14,11 @@ import { sendPurchaseInvoiceEmail } from "../utils/email.service.js";
  * Public: Available Subscription Plans from Database
  */
 export const getSubscriptionPlans = asyncHandler(async (req, res) => {
-  let plans = await SubscriptionPlan.find({ isActive: true }).sort({ order: 1 });
+  let plans = await SubscriptionPlan.find({ isActive: true }).sort({ order: 1, createdAt: -1 });
 
   // Fallback if none exist
   if (!plans || plans.length === 0) {
-    plans = await SubscriptionPlan.find().sort({ order: 1 });
+    plans = await SubscriptionPlan.find().sort({ order: 1, createdAt: -1 });
   }
 
   return res
@@ -30,7 +30,7 @@ export const getSubscriptionPlans = asyncHandler(async (req, res) => {
  * Admin: Get all plans (including inactive)
  */
 export const getAdminSubscriptionPlans = asyncHandler(async (req, res) => {
-  const plans = await SubscriptionPlan.find().sort({ order: 1 });
+  const plans = await SubscriptionPlan.find().sort({ order: 1, createdAt: -1 });
   return res
     .status(200)
     .json(new ApiResponse(200, plans, "Admin subscription plans retrieved"));

@@ -58,7 +58,7 @@ export const getCourses = asyncHandler(async (req, res) => {
     filter.$and = andConditions;
   }
 
-  const courses = await Course.find(filter).sort({ createdAt: 1 });
+  const courses = await Course.find(filter).sort({ createdAt: -1 });
 
   return res
     .status(200)
