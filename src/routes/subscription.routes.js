@@ -28,36 +28,36 @@ router.route("/my").get(verifyJWT, getMySubscriptionDetails);
 // Admin Plans Management
 router
   .route("/admin/plans")
-  .get(verifyJWT, checkPermission("roles", "view"), getAdminSubscriptionPlans)
-  .post(verifyJWT, checkPermission("roles", "create"), createSubscriptionPlan);
+  .get(verifyJWT, checkPermission(["subscriptions", "roles"], "view"), getAdminSubscriptionPlans)
+  .post(verifyJWT, checkPermission(["subscriptions", "roles"], "create"), createSubscriptionPlan);
 
 router
   .route("/admin/plans/:id")
-  .get(verifyJWT, checkPermission("roles", "view"), getSubscriptionPlanById)
-  .patch(verifyJWT, checkPermission("roles", "edit"), updateSubscriptionPlan)
-  .delete(verifyJWT, checkPermission("roles", "delete"), deleteSubscriptionPlan);
+  .get(verifyJWT, checkPermission(["subscriptions", "roles"], "view"), getSubscriptionPlanById)
+  .patch(verifyJWT, checkPermission(["subscriptions", "roles"], "edit"), updateSubscriptionPlan)
+  .delete(verifyJWT, checkPermission(["subscriptions", "roles"], "delete"), deleteSubscriptionPlan);
 
 // Admin User Subscription Manual Assignment & Revocation
 router
   .route("/admin/assign")
-  .post(verifyJWT, checkPermission("roles", "edit"), assignUserSubscription);
+  .post(verifyJWT, checkPermission(["subscriptions", "roles"], "edit"), assignUserSubscription);
 
 router
   .route("/admin/revoke/:userId")
-  .post(verifyJWT, checkPermission("roles", "edit"), revokeUserSubscription);
+  .post(verifyJWT, checkPermission(["subscriptions", "roles"], "edit"), revokeUserSubscription);
 
 // Root admin alias
 router
   .route("/")
-  .get(verifyJWT, checkPermission("roles", "view"), getAdminSubscriptions);
+  .get(verifyJWT, checkPermission(["subscriptions", "roles"], "view"), getAdminSubscriptions);
 
 // Admin Transactions & Audit
 router
   .route("/admin/all")
-  .get(verifyJWT, checkPermission("roles", "view"), getAdminSubscriptions);
+  .get(verifyJWT, checkPermission(["subscriptions", "roles"], "view"), getAdminSubscriptions);
 
 router
   .route("/admin/:id/refund")
-  .post(verifyJWT, checkPermission("roles", "edit"), refundSubscription);
+  .post(verifyJWT, checkPermission(["subscriptions", "roles"], "edit"), refundSubscription);
 
 export default router;

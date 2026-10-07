@@ -60,32 +60,50 @@ export const createSubscriptionPlan = asyncHandler(async (req, res) => {
     order = 0,
   } = req.body;
 
-  if (!planKey || !nameEn || !nameBn) {
+  const resolvedPlanKey = (planKey || nameEn || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  if (!resolvedPlanKey || !nameEn || !nameBn) {
     throw new ApiError(400, "Plan key, English name, and Bengali name are required");
   }
 
-  const existing = await SubscriptionPlan.findOne({ planKey: planKey.toLowerCase().trim() });
+  const existing = await SubscriptionPlan.findOne({ planKey: resolvedPlanKey });
   if (existing) {
-    throw new ApiError(400, "A plan with this key already exists");
+    throw new ApiError(400, `A plan with key '${resolvedPlanKey}' already exists. Please use a unique plan key.`);
   }
 
+  const parsedFeaturesEn = Array.isArray(featuresEn)
+    ? featuresEn.map((f) => String(f).trim()).filter(Boolean)
+    : typeof featuresEn === "string"
+    ? featuresEn.split("\n").map((f) => f.trim()).filter(Boolean)
+    : [];
+
+  const parsedFeaturesBn = Array.isArray(featuresBn)
+    ? featuresBn.map((f) => String(f).trim()).filter(Boolean)
+    : typeof featuresBn === "string"
+    ? featuresBn.split("\n").map((f) => f.trim()).filter(Boolean)
+    : [];
+
   const newPlan = await SubscriptionPlan.create({
-    planKey: planKey.toLowerCase().trim(),
+    planKey: resolvedPlanKey,
     nameEn: nameEn.trim(),
     nameBn: nameBn.trim(),
-    taglineEn: taglineEn || "",
-    taglineBn: taglineBn || "",
-    durationDays: Number(durationDays),
-    durationLabelEn: durationLabelEn || `${durationDays} days`,
-    durationLabelBn: durationLabelBn || `${durationDays} দিন`,
-    price: Number(price),
-    originalPrice: Number(originalPrice),
-    badgeEn: badgeEn || "",
-    badgeBn: badgeBn || "",
-    featuresEn: Array.isArray(featuresEn) ? featuresEn : [],
-    featuresBn: Array.isArray(featuresBn) ? featuresBn : [],
+    taglineEn: taglineEn ? taglineEn.trim() : "",
+    taglineBn: taglineBn ? taglineBn.trim() : "",
+    durationDays: Number(durationDays) || 30,
+    durationLabelEn: durationLabelEn?.trim() || `${Number(durationDays) || 30} days`,
+    durationLabelBn: durationLabelBn?.trim() || `${Number(durationDays) || 30} দিন`,
+    price: Number(price) || 0,
+    originalPrice: Number(originalPrice) || 0,
+    badgeEn: badgeEn ? badgeEn.trim() : "",
+    badgeBn: badgeBn ? badgeBn.trim() : "",
+    featuresEn: parsedFeaturesEn,
+    featuresBn: parsedFeaturesBn,
     isPopular: Boolean(isPopular),
-    isActive: Boolean(isActive),
+    isActive: isActive !== false,
     order: Number(order) || 0,
   });
 

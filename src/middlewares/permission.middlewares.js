@@ -61,13 +61,13 @@ export const checkPermission = (moduleName, action) => {
 
     // Find permissions for the requested module
     const modulePermission = userRole.permissions.find(
-      (p) => p.module === moduleName
+      (p) => modules.includes(p.module)
     );
 
     if (!modulePermission || !modulePermission.actions.includes(action)) {
       throw new ApiError(
         403,
-        `Permission denied: Insufficient privileges to perform '${action}' on '${moduleName}'`
+        `Permission denied: Insufficient privileges to perform '${action}' on '${Array.isArray(moduleName) ? moduleName.join("/") : moduleName}'`
       );
     }
 

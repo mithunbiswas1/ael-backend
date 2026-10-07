@@ -12,18 +12,9 @@ const subscriptionSchema = new Schema(
     plan: {
       type: String,
       required: true,
-      enum: [
-        "free",
-        "monthly",
-        "half_yearly",
-        "yearly",
-        "professional",
-        "course_single",
-        "consumer",
-        "dealer",
-        "enterprise",
-      ],
+      trim: true,
       default: "monthly",
+      index: true,
     },
     planName: {
       type: String,
@@ -31,7 +22,7 @@ const subscriptionSchema = new Schema(
     },
     billingCycle: {
       type: String,
-      enum: ["monthly", "half_yearly", "yearly", "one_time", "lifetime"],
+      trim: true,
       default: "monthly",
     },
     amount: {
