@@ -167,7 +167,8 @@ const userSchema = new Schema(
             attemptedAt: { type: Date, default: Date.now },
           },
         ],
-        status: { type: String, enum: ["active", "completed"], default: "active" },
+        status: { type: String, enum: ["active", "completed", "preview"], default: "active" },
+        isFreePreview: { type: Boolean, default: false },
       },
     ],
     subscription: {

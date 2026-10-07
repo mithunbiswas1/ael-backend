@@ -594,7 +594,7 @@ export const getMyEnrolledCourses = asyncHandler(async (req, res) => {
     "manager",
   ].includes(user.role);
 
-  const isSubscriber = isAdmin || isSubActive;
+  const isSubscriber = isSubActive;
 
   let courses = [];
   if (isSubscriber) {
@@ -892,12 +892,49 @@ export const updateCourseProgress = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Course not found");
   }
 
+  const isPaidCourse = (course.price || 0) > 0 && !course.isFree;
+  const now = new Date();
+  const sub = user.subscription;
+  const hasValidExpiry = sub?.expiresAt
+    ? new Date(sub.expiresAt) > now
+    : sub?.planKey === "lifetime";
+  const isSubActive =
+    sub?.status === "active" &&
+    sub?.planKey &&
+    sub?.planKey !== "course_single" &&
+    sub?.planKey !== "free" &&
+    hasValidExpiry;
+
+  const hasPaidCourseSubscription = await Subscription.exists({
+    userId: user._id,
+    plan: "course_single",
+    courseId: { $in: [course.courseId, course._id.toString(), course.slug] },
+    status: "paid",
+  });
+
+  const hasUserFullAccess = isSubActive || Boolean(hasPaidCourseSubscription);
+
+  // Find which module contains lessonId
+  let lessonModuleIdx = 0;
+  if (course.curriculum && lessonId) {
+    course.curriculum.forEach((mod, mIdx) => {
+      if (mod.lessons?.some((l) => String(l._id) === String(lessonId) || String(l.id) === String(lessonId))) {
+        lessonModuleIdx = mIdx;
+      }
+    });
+  }
+
+  // Strict guard: Paid course + No full access -> Module 2+ is strictly blocked!
+  if (isPaidCourse && !hasUserFullAccess && lessonModuleIdx > 0) {
+    throw new ApiError(403, "Payment or active subscription required to access Module 2 onwards");
+  }
+
   if (!user.enrolledCourses) {
     user.enrolledCourses = [];
   }
 
   let enrollment = user.enrolledCourses.find(
-    (e) => e.courseId === course.courseId || e.courseId === course._id.toString()
+    (e) => e.courseId === course.courseId || e.courseId === course._id.toString() || e.courseId === course.slug
   );
 
   if (!enrollment) {
@@ -906,9 +943,13 @@ export const updateCourseProgress = asyncHandler(async (req, res) => {
       enrolledAt: new Date(),
       progressPercent: 0,
       completedLessons: [],
-      status: "active",
+      status: isPaidCourse && !hasUserFullAccess ? "preview" : "active",
+      isFreePreview: Boolean(isPaidCourse && !hasUserFullAccess),
     };
     user.enrolledCourses.push(enrollment);
+  } else if (isPaidCourse && !hasUserFullAccess && !hasPaidCourseSubscription) {
+    enrollment.status = "preview";
+    enrollment.isFreePreview = true;
   }
 
   if (!enrollment.lessonProgress) {
@@ -955,7 +996,7 @@ export const updateCourseProgress = asyncHandler(async (req, res) => {
     Math.round((completedCount / totalLessons) * 100)
   );
 
-  if (enrollment.progressPercent >= 100) {
+  if (enrollment.progressPercent >= 100 && (!isPaidCourse || hasUserFullAccess)) {
     enrollment.status = "completed";
   }
 
@@ -998,6 +1039,33 @@ export const submitModuleQuiz = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Course not found");
   }
 
+  const isPaidCourse = (course.price || 0) > 0 && !course.isFree;
+  const now = new Date();
+  const sub = user.subscription;
+  const hasValidExpiry = sub?.expiresAt
+    ? new Date(sub.expiresAt) > now
+    : sub?.planKey === "lifetime";
+  const isSubActive =
+    sub?.status === "active" &&
+    sub?.planKey &&
+    sub?.planKey !== "course_single" &&
+    sub?.planKey !== "free" &&
+    hasValidExpiry;
+
+  const hasPaidCourseSubscription = await Subscription.exists({
+    userId: user._id,
+    plan: "course_single",
+    courseId: { $in: [course.courseId, course._id.toString(), course.slug] },
+    status: "paid",
+  });
+
+  const hasUserFullAccess = isSubActive || Boolean(hasPaidCourseSubscription);
+
+  // Strict guard: Paid course + No full access -> Module 2+ quiz is strictly blocked!
+  if (isPaidCourse && !hasUserFullAccess && Number(moduleIndex) > 0) {
+    throw new ApiError(403, "Payment or active subscription required to take quizzes in Module 2 onwards");
+  }
+
   if (!user.enrolledCourses) {
     user.enrolledCourses = [];
   }
@@ -1012,10 +1080,14 @@ export const submitModuleQuiz = asyncHandler(async (req, res) => {
       enrolledAt: new Date(),
       progressPercent: 0,
       completedLessons: [],
-      status: "active",
+      status: isPaidCourse && !hasUserFullAccess ? "preview" : "active",
+      isFreePreview: Boolean(isPaidCourse && !hasUserFullAccess),
       moduleQuizResults: [],
     };
     user.enrolledCourses.push(enrollment);
+  } else if (isPaidCourse && !hasUserFullAccess && !hasPaidCourseSubscription) {
+    enrollment.status = "preview";
+    enrollment.isFreePreview = true;
   }
 
   if (!enrollment.moduleQuizResults) {
@@ -1045,7 +1117,7 @@ export const submitModuleQuiz = asyncHandler(async (req, res) => {
   const isFinalExam = Number(moduleIndex) >= totalModules - 1;
   let certificate = null;
 
-  if (isFinalExam && isPassed) {
+  if (isFinalExam && isPassed && (!isPaidCourse || hasUserFullAccess)) {
     enrollment.quizPassed = true;
     enrollment.status = "completed";
     enrollment.progressPercent = 100;
