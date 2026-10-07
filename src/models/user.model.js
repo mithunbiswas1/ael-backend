@@ -35,14 +35,10 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      enum: [
-        "super_admin",
-        "admin",
-        "instructor",
-        "subscriber",
-        "user",
-      ],
       default: "user",
+      trim: true,
+      lowercase: true,
+      index: true,
     },
     permissions: [
       {

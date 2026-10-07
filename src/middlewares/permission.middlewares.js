@@ -23,13 +23,14 @@ export const checkPermission = (moduleName, action) => {
     }
 
     const modules = Array.isArray(moduleName) ? moduleName : [moduleName];
+    const norm = (s) => (s ? String(s).toLowerCase().replace(/[-_]/g, "") : "");
 
     // If user has specific granular permissions assigned (e.g. Admin with custom page control)
     if (Array.isArray(user.permissions) && user.permissions.length > 0) {
       const userPerm = user.permissions.find(
         (p) =>
-          modules.includes(p.module) ||
-          modules.some((m) => p.page && (p.page === `/admin/${m}` || p.page.includes(m)))
+          modules.some((m) => norm(p.module) === norm(m)) ||
+          modules.some((m) => p.page && (norm(p.page).includes(norm(m)) || p.page === `/admin/${m}`))
       );
 
       if (userPerm && userPerm.actions && userPerm.actions.includes(action)) {
@@ -59,9 +60,11 @@ export const checkPermission = (moduleName, action) => {
       throw new ApiError(403, "Access denied: Role definition not found");
     }
 
-    // Find permissions for the requested module
+    // Find permissions for the requested module or page
     const modulePermission = userRole.permissions.find(
-      (p) => modules.includes(p.module)
+      (p) =>
+        modules.some((m) => norm(p.module) === norm(m)) ||
+        modules.some((m) => p.page && (norm(p.page).includes(norm(m)) || p.page === `/admin/${m}`))
     );
 
     if (!modulePermission || !modulePermission.actions.includes(action)) {
