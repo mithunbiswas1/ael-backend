@@ -574,19 +574,31 @@ export const getMyEnrolledCourses = asyncHandler(async (req, res) => {
   const userEnrollments = user.enrolledCourses || [];
   const enrolledCourseIds = userEnrollments.map((e) => e.courseId).filter(Boolean);
 
-  const isSubscriber =
-    user.role === "subscriber" ||
-    user.role === "super_admin" ||
-    user.role === "admin" ||
-    user.role === "instructor" ||
-    (user.subscription?.status === "active" &&
-      user.subscription?.planKey !== "course_single" &&
-      (!user.subscription?.expiresAt ||
-        new Date(user.subscription.expiresAt) > new Date()));
+  const now = new Date();
+  const sub = user.subscription;
+  const hasValidExpiry = sub?.expiresAt
+    ? new Date(sub.expiresAt) > now
+    : sub?.planKey === "lifetime";
+  const isSubActive =
+    sub?.status === "active" &&
+    sub?.planKey &&
+    sub?.planKey !== "course_single" &&
+    sub?.planKey !== "free" &&
+    hasValidExpiry;
+
+  const isAdmin = [
+    "super_admin",
+    "admin",
+    "instructor",
+    "course_admin",
+    "manager",
+  ].includes(user.role);
+
+  const isSubscriber = isAdmin || isSubActive;
 
   let courses = [];
   if (isSubscriber) {
-    // Subscriber with package from pricing gets free access to ALL courses
+    // Subscriber with active package gets free access to ALL courses
     courses = await Course.find({ isPublished: true });
   } else if (enrolledCourseIds.length > 0) {
     // General user: ONLY explicitly enrolled courses
@@ -659,6 +671,36 @@ export const enrollInCourse = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
   if (!user) {
     throw new ApiError(404, "User not found");
+  }
+
+  const isPaidCourse = course.price > 0 && course.isFree !== true;
+  if (isPaidCourse) {
+    const now = new Date();
+    const sub = user.subscription;
+    const hasValidExpiry = sub?.expiresAt
+      ? new Date(sub.expiresAt) > now
+      : sub?.planKey === "lifetime";
+    const isSubActive =
+      sub?.status === "active" &&
+      sub?.planKey &&
+      sub?.planKey !== "course_single" &&
+      sub?.planKey !== "free" &&
+      hasValidExpiry;
+
+    const isAdmin = [
+      "super_admin",
+      "admin",
+      "instructor",
+      "course_admin",
+      "manager",
+    ].includes(user.role);
+
+    if (!isSubActive && !isAdmin) {
+      throw new ApiError(
+        403,
+        "Payment or active subscription required to enroll in this paid course"
+      );
+    }
   }
 
   const existing = user.enrolledCourses?.find(

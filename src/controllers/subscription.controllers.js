@@ -217,14 +217,25 @@ export const initiateCheckout = asyncHandler(async (req, res) => {
         : "lifetime";
 
     // Cumulative Validity Logic:
-    // If user has an active, non-expired subscription, add the new duration to existing expiry!
-    // Example: 30 days active + 30 days bought = 60 days total.
-    // If expired: start from today ("sedin theke abar X months count hobe").
-    const currentExpiry = userToUpdate?.subscription?.expiresAt
+    // Only accumulate if the user has an existing active standard subscription (not lifetime, not course enrollment)
+    // and whose remaining validity is within a standard subscription period (<= 370 days)
+    const currentPlanKey = userToUpdate?.subscription?.planKey;
+    const isStandardActiveSub =
+      userToUpdate?.subscription?.status === "active" &&
+      currentPlanKey &&
+      currentPlanKey !== "free" &&
+      currentPlanKey !== "course_single" &&
+      currentPlanKey !== "lifetime";
+
+    const currentExpiry = (isStandardActiveSub && userToUpdate?.subscription?.expiresAt)
       ? new Date(userToUpdate.subscription.expiresAt)
       : null;
 
-    if (currentExpiry && currentExpiry > now) {
+    if (
+      currentExpiry &&
+      currentExpiry > now &&
+      (currentExpiry.getTime() - now.getTime()) <= 370 * 24 * 60 * 60 * 1000
+    ) {
       startDate = userToUpdate.subscription.startDate
         ? new Date(userToUpdate.subscription.startDate)
         : now;
@@ -792,18 +803,26 @@ export const getMySubscriptionDetails = asyncHandler(async (req, res) => {
         transactionId: null,
       };
 
-  // Check if there is an active paid subscription for this user in DB
+  // Check if there is an active paid subscription for this user in DB (excluding single course purchases!)
   const latestSub = await Subscription.findOne({
     $or: [
       { userId: user._id },
       { "customerDetails.phone": user.phone },
       { "customerDetails.email": user.email },
     ],
+    plan: { $ne: "course_single" },
     status: "paid",
   }).sort({ createdAt: -1 });
 
-  if (latestSub && (!sub.startDate || sub.planKey === "free" || !sub.transactionId)) {
-    sub.planKey = latestSub.plan === "course_single" ? "course_single" : latestSub.plan;
+  if (
+    latestSub &&
+    (!sub.startDate ||
+      sub.planKey === "free" ||
+      sub.planKey === "course_single" ||
+      !sub.transactionId ||
+      (sub.expiresAt && new Date(sub.expiresAt).getFullYear() > 2100 && latestSub.billingCycle !== "lifetime"))
+  ) {
+    sub.planKey = latestSub.plan;
     sub.planName = latestSub.planName;
     sub.status = "active";
     sub.startDate = latestSub.startDate || latestSub.createdAt;
@@ -812,7 +831,6 @@ export const getMySubscriptionDetails = asyncHandler(async (req, res) => {
 
     user.subscription = sub;
     if (
-      latestSub.plan !== "course_single" &&
       !["super_admin", "admin", "instructor"].includes(user.role)
     ) {
       user.role = "subscriber";
