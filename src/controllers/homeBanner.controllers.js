@@ -98,10 +98,13 @@ export const uploadBannerSlides = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Please upload at least one image file");
   }
 
-  const backendBase =
-    process.env.BASE_URL || `http://localhost:${process.env.PORT || 8005}`;
+  const backendBase = (
+    process.env.BASE_URL || "https://api.charutec.com"
+  ).replace(/\/$/, "");
   const uploadedSlides = files.map((file, idx) => ({
     image: `${backendBase}/public/upload/${file.filename}`,
+    imageUrl: `${backendBase}/public/upload/${file.filename}`,
+    url: `${backendBase}/public/upload/${file.filename}`,
     alt: file.originalname.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
     altBn: "",
     order: idx + 1,

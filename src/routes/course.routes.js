@@ -51,7 +51,30 @@ router
   .post(
     verifyJWT,
     checkPermission("courses", "create"),
-    uploadVideo.single("video"),
+    (req, res, next) => {
+      // Allow up to 15 minutes for large 1GB video uploads without timeout
+      req.setTimeout(15 * 60 * 1000);
+      res.setTimeout(15 * 60 * 1000);
+      uploadVideo.single("video")(req, res, (err) => {
+        if (err) {
+          if (err.code === "LIMIT_FILE_SIZE") {
+            return res.status(400).json({
+              statusCode: 400,
+              data: null,
+              message: "ভিডিও ফাইল সাইজ সর্বোচ্চ ১জিবি (1GB) হতে পারবে। / Video file exceeds 1GB limit.",
+              success: false,
+            });
+          }
+          return res.status(400).json({
+            statusCode: 400,
+            data: null,
+            message: err.message || "ভিডিও ফাইল আপলোড ব্যর্থ হয়েছে। / Failed to upload video.",
+            success: false,
+          });
+        }
+        next();
+      });
+    },
     uploadCourseVideo
   );
 

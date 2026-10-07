@@ -83,9 +83,13 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const userName = await generateUniqueUsername(fullName);
 
+  const backendBase = (
+    process.env.BASE_URL || "https://api.charutec.com"
+  ).replace(/\/$/, "");
+
   const files = req.files || {};
   const profileImage = files.profilePhoto
-    ? `public/upload/${files.profilePhoto[0].filename}`
+    ? `${backendBase}/public/upload/${files.profilePhoto[0].filename}`
     : undefined;
 
   const userData = {
@@ -345,9 +349,13 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     }
   }
 
+  const backendBase = (
+    process.env.BASE_URL || "https://api.charutec.com"
+  ).replace(/\/$/, "");
+
   const files = req.files || {};
   const profileImage = files.profilePhoto
-    ? `public/upload/${files.profilePhoto[0].filename}`
+    ? `${backendBase}/public/upload/${files.profilePhoto[0].filename}`
     : undefined;
 
   const updateData = {

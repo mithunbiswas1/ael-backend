@@ -794,8 +794,12 @@ export const uploadCourseVideo = asyncHandler(async (req, res) => {
     throw new ApiError(400, "No video file provided");
   }
 
+  const backendBase = (
+    process.env.BASE_URL || "https://api.charutec.com"
+  ).replace(/\/$/, "");
+
   // Construct accessible URL path
-  const videoUrl = `/public/upload/videos/${req.file.filename}`;
+  const videoUrl = `${backendBase}/public/upload/videos/${req.file.filename}`;
 
   return res.status(200).json(
     new ApiResponse(
@@ -805,6 +809,7 @@ export const uploadCourseVideo = asyncHandler(async (req, res) => {
         originalName: req.file.originalname,
         size: req.file.size,
         videoUrl,
+        relativePath: `/public/upload/videos/${req.file.filename}`,
       },
       "Course video uploaded successfully"
     )
@@ -819,7 +824,10 @@ export const uploadCourseImage = asyncHandler(async (req, res) => {
     throw new ApiError(400, "No image file provided");
   }
 
-  const imageUrl = `/public/upload/${req.file.filename}`;
+  const backendBase = (
+    process.env.BASE_URL || "https://api.charutec.com"
+  ).replace(/\/$/, "");
+  const imageUrl = `${backendBase}/public/upload/${req.file.filename}`;
 
   return res.status(200).json(
     new ApiResponse(
@@ -829,6 +837,7 @@ export const uploadCourseImage = asyncHandler(async (req, res) => {
         originalName: req.file.originalname,
         size: req.file.size,
         imageUrl,
+        relativePath: `/public/upload/${req.file.filename}`,
       },
       "Course image uploaded successfully"
     )
@@ -843,7 +852,10 @@ export const uploadCoursePdf = asyncHandler(async (req, res) => {
     throw new ApiError(400, "No PDF file provided");
   }
 
-  const pdfUrl = `/public/upload/${req.file.filename}`;
+  const backendBase = (
+    process.env.BASE_URL || "https://api.charutec.com"
+  ).replace(/\/$/, "");
+  const pdfUrl = `${backendBase}/public/upload/${req.file.filename}`;
 
   return res.status(200).json(
     new ApiResponse(
@@ -853,6 +865,7 @@ export const uploadCoursePdf = asyncHandler(async (req, res) => {
         originalName: req.file.originalname,
         size: req.file.size,
         pdfUrl,
+        relativePath: `/public/upload/${req.file.filename}`,
       },
       "Course PDF uploaded successfully"
     )

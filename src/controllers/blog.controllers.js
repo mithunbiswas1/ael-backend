@@ -215,10 +215,19 @@ export const createBlog = asyncHandler(async (req, res) => {
     generatedSlug = `${generatedSlug}-${Date.now().toString().slice(-4)}`;
   }
 
+  const backendBase = (
+    process.env.BASE_URL || "https://api.charutec.com"
+  ).replace(/\/$/, "");
+
   // Uploaded image handling
   let imageUrl = req.body.image;
   if (req.files && req.files.image && req.files.image[0]) {
-    imageUrl = `/public/upload/${req.files.image[0].filename}`;
+    imageUrl = `${backendBase}/public/upload/${req.files.image[0].filename}`;
+  } else if (imageUrl && typeof imageUrl === "string") {
+    imageUrl = imageUrl.replace(/^http:\/\/(localhost|127\.0\.0\.1):(8005|8000)/i, backendBase);
+    if (imageUrl.startsWith("/public/upload")) {
+      imageUrl = `${backendBase}${imageUrl}`;
+    }
   }
 
   // Parse tags if submitted as JSON string or comma-separated
@@ -288,8 +297,17 @@ export const updateBlog = asyncHandler(async (req, res) => {
 
   const updates = { ...req.body };
 
+  const backendBase = (
+    process.env.BASE_URL || "https://api.charutec.com"
+  ).replace(/\/$/, "");
+
   if (req.files && req.files.image && req.files.image[0]) {
-    updates.image = `/public/upload/${req.files.image[0].filename}`;
+    updates.image = `${backendBase}/public/upload/${req.files.image[0].filename}`;
+  } else if (updates.image && typeof updates.image === "string") {
+    updates.image = updates.image.replace(/^http:\/\/(localhost|127\.0\.0\.1):(8005|8000)/i, backendBase);
+    if (updates.image.startsWith("/public/upload")) {
+      updates.image = `${backendBase}${updates.image}`;
+    }
   }
 
   if (updates.tags) {

@@ -245,14 +245,17 @@ export const updateSystemSettings = asyncHandler(async (req, res) => {
 
   // Handle uploaded images if any
   if (req.files) {
+    const backendBase = (
+      process.env.BASE_URL || "https://api.charutec.com"
+    ).replace(/\/$/, "");
     if (req.files.siteLogo && req.files.siteLogo[0]) {
-      settings.siteLogo = `/public/upload/${req.files.siteLogo[0].filename}`;
+      settings.siteLogo = `${backendBase}/public/upload/${req.files.siteLogo[0].filename}`;
     }
     if (req.files.footerLogo && req.files.footerLogo[0]) {
-      settings.footerLogo = `/public/upload/${req.files.footerLogo[0].filename}`;
+      settings.footerLogo = `${backendBase}/public/upload/${req.files.footerLogo[0].filename}`;
     }
     if (req.files.favicon && req.files.favicon[0]) {
-      settings.favicon = `/public/upload/${req.files.favicon[0].filename}`;
+      settings.favicon = `${backendBase}/public/upload/${req.files.favicon[0].filename}`;
     }
   }
 

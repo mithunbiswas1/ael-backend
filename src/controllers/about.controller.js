@@ -107,6 +107,10 @@ const createOrUpdateAbout = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
 
+  const backendBase = (
+    process.env.BASE_URL || "https://api.charutec.com"
+  ).replace(/\/$/, "");
+
   // Prepare update data
   const updateData = {
     // Page Banner
@@ -114,7 +118,7 @@ const createOrUpdateAbout = asyncHandler(async (req, res) => {
     page_banner_title_hi: page_banner_title_hi || "",
     page_banner_subtitle,
     page_banner_subtitle_hi: page_banner_subtitle_hi || "",
-    page_banner_image: `public/upload/${req.files.page_banner_image[0].filename}`,
+    page_banner_image: `${backendBase}/public/upload/${req.files.page_banner_image[0].filename}`,
     // Chairman
     chairman_name,
     chairman_name_hi: chairman_name_hi || "",
@@ -122,7 +126,7 @@ const createOrUpdateAbout = asyncHandler(async (req, res) => {
     chairman_designation_hi: chairman_designation_hi || "",
     chairman_message,
     chairman_message_hi: chairman_message_hi || "",
-    chairman_image: `public/upload/${req.files.chairman_image[0].filename}`,
+    chairman_image: `${backendBase}/public/upload/${req.files.chairman_image[0].filename}`,
     // Mission & Vision
     mission,
     mission_hi: mission_hi || "",
@@ -282,11 +286,14 @@ const updateAbout = asyncHandler(async (req, res) => {
 
   // Handle file uploads
   if (req.files) {
+    const backendBase = (
+      process.env.BASE_URL || "https://api.charutec.com"
+    ).replace(/\/$/, "");
     if (req.files.page_banner_image) {
-      updateData.page_banner_image = `public/upload/${req.files.page_banner_image[0].filename}`;
+      updateData.page_banner_image = `${backendBase}/public/upload/${req.files.page_banner_image[0].filename}`;
     }
     if (req.files.chairman_image) {
-      updateData.chairman_image = `public/upload/${req.files.chairman_image[0].filename}`;
+      updateData.chairman_image = `${backendBase}/public/upload/${req.files.chairman_image[0].filename}`;
     }
   }
 

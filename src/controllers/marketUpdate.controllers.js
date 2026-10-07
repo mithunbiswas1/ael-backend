@@ -253,10 +253,19 @@ export const createMarketUpdate = asyncHandler(async (req, res) => {
     generatedSlug = `${generatedSlug}-${Date.now().toString().slice(-4)}`;
   }
 
+  const backendBase = (
+    process.env.BASE_URL || "https://api.charutec.com"
+  ).replace(/\/$/, "");
+
   // Handle uploaded Image
   let imageUrl = req.body.image;
   if (req.files && req.files.image && req.files.image[0]) {
-    imageUrl = `/public/upload/${req.files.image[0].filename}`;
+    imageUrl = `${backendBase}/public/upload/${req.files.image[0].filename}`;
+  } else if (imageUrl && typeof imageUrl === "string") {
+    imageUrl = imageUrl.replace(/^http:\/\/(localhost|127\.0\.0\.1):(8005|8000)/i, backendBase);
+    if (imageUrl.startsWith("/public/upload")) {
+      imageUrl = `${backendBase}${imageUrl}`;
+    }
   }
 
   // Handle uploaded PDF
@@ -266,9 +275,14 @@ export const createMarketUpdate = asyncHandler(async (req, res) => {
 
   if (req.files && req.files.pdf && req.files.pdf[0]) {
     const pdfFile = req.files.pdf[0];
-    pdfUrl = `/public/upload/${pdfFile.filename}`;
+    pdfUrl = `${backendBase}/public/upload/${pdfFile.filename}`;
     pdfOriginalName = pdfFile.originalname;
     pdfSize = pdfFile.size;
+  } else if (pdfUrl && typeof pdfUrl === "string") {
+    pdfUrl = pdfUrl.replace(/^http:\/\/(localhost|127\.0\.0\.1):(8005|8000)/i, backendBase);
+    if (pdfUrl.startsWith("/public/upload")) {
+      pdfUrl = `${backendBase}${pdfUrl}`;
+    }
   }
 
   // Parse tags
@@ -426,17 +440,25 @@ export const updateMarketUpdate = asyncHandler(async (req, res) => {
     }
   }
 
+  const backendBase = (
+    process.env.BASE_URL || "https://api.charutec.com"
+  ).replace(/\/$/, "");
+
   // Handle image upload
   if (req.files && req.files.image && req.files.image[0]) {
-    update.image = `/public/upload/${req.files.image[0].filename}`;
-  } else if (req.body.image) {
-    update.image = req.body.image;
+    update.image = `${backendBase}/public/upload/${req.files.image[0].filename}`;
+  } else if (req.body.image && typeof req.body.image === "string") {
+    let cleanImg = req.body.image.replace(/^http:\/\/(localhost|127\.0\.0\.1):(8005|8000)/i, backendBase);
+    if (cleanImg.startsWith("/public/upload")) {
+      cleanImg = `${backendBase}${cleanImg}`;
+    }
+    update.image = cleanImg;
   }
 
   // Handle PDF upload
   if (req.files && req.files.pdf && req.files.pdf[0]) {
     const pdfFile = req.files.pdf[0];
-    update.pdfUrl = `/public/upload/${pdfFile.filename}`;
+    update.pdfUrl = `${backendBase}/public/upload/${pdfFile.filename}`;
     update.pdfOriginalName = pdfFile.originalname;
     update.pdfSize = pdfFile.size;
   } else if (removePdf === "true" || removePdf === true) {
@@ -444,7 +466,12 @@ export const updateMarketUpdate = asyncHandler(async (req, res) => {
     update.pdfOriginalName = "";
     update.pdfSize = 0;
   } else if (req.body.pdfUrl !== undefined) {
-    update.pdfUrl = req.body.pdfUrl;
+    let cleanPdf = typeof req.body.pdfUrl === "string" ? req.body.pdfUrl : "";
+    cleanPdf = cleanPdf.replace(/^http:\/\/(localhost|127\.0\.0\.1):(8005|8000)/i, backendBase);
+    if (cleanPdf.startsWith("/public/upload")) {
+      cleanPdf = `${backendBase}${cleanPdf}`;
+    }
+    update.pdfUrl = cleanPdf;
     if (req.body.pdfOriginalName) update.pdfOriginalName = req.body.pdfOriginalName;
   }
 
