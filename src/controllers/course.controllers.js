@@ -153,6 +153,72 @@ export const getAdminCourses = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Helper to sanitize curriculum modules, lessons, and quizzes
+ * Prunes unpopulated ghost questions and guarantees consistent option arrays
+ */
+function sanitizeCurriculumPayload(curriculum) {
+  if (!Array.isArray(curriculum)) return [];
+
+  return curriculum.map((mod, modIdx) => {
+    const lessons = Array.isArray(mod.lessons)
+      ? mod.lessons.map((l, lIdx) => ({
+          ...l,
+          title: (l.title || l.titleBn || `Lesson ${lIdx + 1}`).trim(),
+          titleBn: (l.titleBn || l.title || `পাঠ ${lIdx + 1}`).trim(),
+        }))
+      : [];
+
+    let quiz = mod.quiz || {};
+    let questions = Array.isArray(quiz.questions) ? quiz.questions : [];
+
+    // Prune ghost questions that have no question statement and all empty options
+    questions = questions
+      .filter((q) => {
+        const hasQ = Boolean(q.question?.trim() || q.questionBn?.trim());
+        const hasAnyOpt =
+          Array.isArray(q.options) &&
+          q.options.some((opt) => opt && String(opt).trim());
+        return hasQ || hasAnyOpt;
+      })
+      .map((q) => {
+        const rawOpts = Array.isArray(q.options) ? q.options : [];
+        const rawOptsBn = Array.isArray(q.optionsBn) ? q.optionsBn : [];
+        const options = [0, 1, 2, 3].map((i) =>
+          rawOpts[i] != null ? String(rawOpts[i]) : ""
+        );
+        const optionsBn = [0, 1, 2, 3].map((i) =>
+          rawOptsBn[i] != null ? String(rawOptsBn[i]) : ""
+        );
+        return {
+          ...q,
+          question: q.question || "",
+          questionBn: q.questionBn || "",
+          options,
+          optionsBn,
+          correctAnswer: typeof q.correctAnswer === "number" ? q.correctAnswer : 0,
+          explanation: q.explanation || "",
+          explanationBn: q.explanationBn || "",
+        };
+      });
+
+    return {
+      ...mod,
+      moduleTitle: (mod.moduleTitle || mod.moduleTitleBn || `Module ${modIdx + 1}`).trim(),
+      moduleTitleBn: (mod.moduleTitleBn || mod.moduleTitle || `মডিউল ${modIdx + 1}`).trim(),
+      lessons,
+      quiz: {
+        ...quiz,
+        title: (quiz.title || `Module ${modIdx + 1} Quiz`).trim(),
+        titleBn: (quiz.titleBn || `মডিউল ${modIdx + 1} কুইজ`).trim(),
+        durationMinutes: Number(quiz.durationMinutes) || 10,
+        passingScore: Number(quiz.passingScore) || 70,
+        questions,
+      },
+    };
+  });
+}
+
+/**
  * Automatically sync quiz questions from course curriculum modules into the course Quiz engine
  */
 async function syncQuizFromCurriculum(course) {
@@ -165,6 +231,11 @@ async function syncQuizFromCurriculum(course) {
       mod.quiz.questions.forEach((q, qIdx) => {
         if (!q.question || !q.question.trim()) return;
         const optionsList = Array.isArray(q.options) ? q.options : [];
+        const validOptions = optionsList.filter(
+          (opt) => opt && String(opt).trim().length > 0
+        );
+        if (validOptions.length < 2) return;
+
         const formattedOptions = optionsList.map((optText, optIdx) => ({
           id: `opt_m${modIdx + 1}_q${qIdx + 1}_${optIdx + 1}`,
           text: String(optText || ""),
@@ -241,8 +312,13 @@ export const createCourse = asyncHandler(async (req, res) => {
     instructorPayload.role = instructorPayload.role || "Course Instructor";
   }
 
+  const payload = { ...req.body };
+  if (Array.isArray(payload.curriculum)) {
+    payload.curriculum = sanitizeCurriculumPayload(payload.curriculum);
+  }
+
   const course = await Course.create({
-    ...req.body,
+    ...payload,
     instructor: {
       ...instructorPayload,
     },
@@ -300,7 +376,15 @@ export const updateCourse = asyncHandler(async (req, res) => {
     }
   }
 
-  Object.assign(course, req.body);
+  const payload = { ...req.body };
+  if (payload.title && !payload.titleBn) payload.titleBn = payload.title;
+  if (!payload.title && payload.titleBn) payload.title = payload.titleBn;
+
+  if (Array.isArray(payload.curriculum)) {
+    payload.curriculum = sanitizeCurriculumPayload(payload.curriculum);
+  }
+
+  Object.assign(course, payload);
   await course.save();
 
   // Auto-sync quiz questions from curriculum modules into Quiz model

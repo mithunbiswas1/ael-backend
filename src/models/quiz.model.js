@@ -6,7 +6,7 @@ const quizOptionSchema = new Schema({
     type: String,
     default: () => new mongoose.Types.ObjectId().toString(),
   },
-  text: { type: String, required: true },
+  text: { type: String, default: "" },
   textBn: { type: String, default: "" },
   isCorrect: { type: Boolean, default: false },
 });
@@ -16,7 +16,7 @@ const quizQuestionSchema = new Schema({
     type: String,
     default: () => new mongoose.Types.ObjectId().toString(),
   },
-  question: { type: String, required: true },
+  question: { type: String, default: "" },
   questionBn: { type: String, default: "" },
   type: {
     type: String,

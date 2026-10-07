@@ -2,7 +2,7 @@
 import mongoose, { Schema } from "mongoose";
 
 const lessonSchema = new Schema({
-  title: { type: String, required: true },
+  title: { type: String, default: "" },
   titleBn: { type: String, default: "" },
   duration: { type: String, default: "10 mins" },
   durationBn: { type: String, default: "১০ মিনিট" },
@@ -15,17 +15,17 @@ const lessonSchema = new Schema({
 });
 
 const quizQuestionSchema = new Schema({
-  question: { type: String, required: true },
+  question: { type: String, default: "" },
   questionBn: { type: String, default: "" },
-  options: [{ type: String, required: true }],
+  options: [{ type: String, default: "" }],
   optionsBn: [{ type: String, default: "" }],
-  correctAnswer: { type: Number, required: true, default: 0 },
+  correctAnswer: { type: Number, default: 0 },
   explanation: { type: String, default: "" },
   explanationBn: { type: String, default: "" },
 });
 
 const curriculumModuleSchema = new Schema({
-  moduleTitle: { type: String, required: true },
+  moduleTitle: { type: String, default: "" },
   moduleTitleBn: { type: String, default: "" },
   isFree: { type: Boolean, default: false }, // Premium course but free module flag
   lessons: [lessonSchema],
@@ -42,10 +42,10 @@ const courseSchema = new Schema(
   {
     courseId: { type: String, required: true, unique: true, index: true },
     title: { type: String, required: true, trim: true },
-    titleBn: { type: String, required: true, trim: true },
+    titleBn: { type: String, default: "", trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true, index: true },
-    description: { type: String, required: true },
-    descriptionBn: { type: String, required: true },
+    description: { type: String, default: "" },
+    descriptionBn: { type: String, default: "" },
     category: { type: String, default: "Consumer Safety" },
     categoryBn: { type: String, default: "ভোক্তা নিরাপত্তা" },
     badge: { type: String, default: "FREE" },
