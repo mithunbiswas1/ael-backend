@@ -118,4 +118,11 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# End of https://mrkandreev.name/snippets/gitignore-generator/#Node
+# AI & Agents
+.agents/
+.agent/
+.claude/
+AGENTS.md
+CLAUDE.md
+*.mjs.bak
+*.sqa.*
