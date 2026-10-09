@@ -43,7 +43,12 @@ export const getQuizByCourseId = asyncHandler(async (req, res) => {
   const targetCourseId = course ? course.courseId : courseId;
 
   const quiz = await Quiz.findOne({
-    $or: [{ courseId: targetCourseId }, { courseId }],
+    $or: [
+      { courseId: targetCourseId },
+      ...(course?.slug ? [{ courseId: course.slug }] : []),
+      ...(course?._id ? [{ courseId: String(course._id) }] : []),
+      { courseId },
+    ],
   });
 
   if (!quiz) {
@@ -110,7 +115,12 @@ export const getQuizForAttempt = asyncHandler(async (req, res) => {
 
   const targetCourseId = course.courseId;
   const quiz = await Quiz.findOne({
-    $or: [{ courseId: targetCourseId }, { courseId }],
+    $or: [
+      { courseId: targetCourseId },
+      ...(course?.slug ? [{ courseId: course.slug }] : []),
+      ...(course?._id ? [{ courseId: String(course._id) }] : []),
+      { courseId },
+    ],
   });
 
   if (!quiz) {
@@ -130,19 +140,27 @@ export const getQuizForAttempt = asyncHandler(async (req, res) => {
       e.courseId === course.slug
   );
 
-  // If free course and learner not enrolled, auto-enroll them
-  if (!enrollment && (!course.price || course.price === 0)) {
+  const isAdminOrTester = [
+    "super_admin",
+    "admin",
+    "instructor",
+    "course_admin",
+    "manager",
+  ].includes(user.role);
+
+  // If free course or tester/admin not enrolled, auto-enroll them
+  if (!enrollment && (isAdminOrTester || !course.price || course.price === 0)) {
     if (!user.enrolledCourses) user.enrolledCourses = [];
     enrollment = {
       courseId: targetCourseId,
       enrolledAt: new Date(),
-      progressPercent: 0,
+      progressPercent: isAdminOrTester ? 100 : 0,
       completedLessons: [],
       status: "active",
     };
     user.enrolledCourses.push(enrollment);
     await user.save();
-  } else if (!enrollment && user.role !== "admin" && user.role !== "super_admin") {
+  } else if (!enrollment) {
     throw new ApiError(403, "You must be enrolled in this course to take the quiz.");
   }
 
@@ -159,18 +177,76 @@ export const getQuizForAttempt = asyncHandler(async (req, res) => {
     );
   }
 
-  // 4. Random subset selection from question bank
-  const pool = (quiz.questionBank && quiz.questionBank.length > 0)
-    ? quiz.questionBank
-    : (quiz.questions || []);
+  // 4. Multi-Set Random Selection with Smart Exclusion of Failed Sets
+  let validSets = (quiz.questionSets || []).filter(
+    (s) => Array.isArray(s.questions) && s.questions.length > 0
+  );
 
-  if (pool.length === 0) {
-    throw new ApiError(400, "No questions found in this course question bank");
+  // Auto-migrate legacy questions into Set 1 if questionSets is empty
+  if (validSets.length === 0) {
+    const legacyQuestions = (quiz.questionBank && quiz.questionBank.length > 0)
+      ? quiz.questionBank
+      : (quiz.questions || []);
+
+    if (legacyQuestions.length > 0) {
+      const defaultSet = {
+        setId: new mongoose.Types.ObjectId().toString(),
+        setName: "Set 1",
+        setNameBn: "সেট ১",
+        description: "Default question set",
+        questions: legacyQuestions,
+      };
+      quiz.questionSets = [defaultSet];
+      await quiz.save();
+      validSets = [defaultSet];
+    }
   }
 
-  const questionsCount = Math.min(quiz.questionsPerQuiz || pool.length, pool.length);
-  const shuffledPool = shuffleArray(pool);
-  const selectedQuestions = shuffledPool.slice(0, questionsCount);
+  let selectedQuestions = [];
+  let chosenSetId = null;
+  let chosenSetName = "Default Set";
+  let chosenSetNameBn = "সাধারণ সেট";
+
+  if (validSets.length > 0) {
+    const attemptedSetIds = Array.isArray(enrollment?.attemptedSetIds)
+      ? enrollment.attemptedSetIds.map(String)
+      : [];
+    const lastAttemptedSetId = enrollment?.lastAttemptedSetId
+      ? String(enrollment.lastAttemptedSetId)
+      : null;
+
+    // Filter out sets the user has already failed/attempted
+    let availableSets = validSets.filter((s) => !attemptedSetIds.includes(String(s.setId)));
+
+    // Edge-case: If user has already attempted all sets, reset cycle but exclude immediate last attempted set
+    if (availableSets.length === 0) {
+      const otherSets = validSets.filter((s) => String(s.setId) !== lastAttemptedSetId);
+      availableSets = otherSets.length > 0 ? otherSets : validSets;
+    }
+
+    // Pick a random set from candidate sets
+    const chosenSet = availableSets[Math.floor(Math.random() * availableSets.length)];
+    chosenSetId = String(chosenSet.setId);
+    chosenSetName = chosenSet.setName || `Set ${validSets.indexOf(chosenSet) + 1}`;
+    chosenSetNameBn = chosenSet.setNameBn || chosenSetName;
+
+    // Use questions from the chosen set
+    const setQuestions = chosenSet.questions || [];
+    const questionsCount = Math.min(quiz.questionsPerQuiz || setQuestions.length, setQuestions.length);
+    selectedQuestions = shuffleArray(setQuestions).slice(0, questionsCount);
+  } else {
+    // Fallback: Legacy questionBank or questions
+    const pool = (quiz.questionBank && quiz.questionBank.length > 0)
+      ? quiz.questionBank
+      : (quiz.questions || []);
+
+    if (pool.length === 0) {
+      throw new ApiError(400, "No questions found in this course question bank");
+    }
+
+    const questionsCount = Math.min(quiz.questionsPerQuiz || pool.length, pool.length);
+    selectedQuestions = shuffleArray(pool).slice(0, questionsCount);
+  }
 
   // 5 & 6. Option shuffling + Anti-cheat sanitization
   const sanitizedQuestions = selectedQuestions.map((q) => {
@@ -211,6 +287,11 @@ export const getQuizForAttempt = asyncHandler(async (req, res) => {
         courseTitleBn: course.titleBn,
         title: quiz.title,
         titleBn: quiz.titleBn,
+        setId: chosenSetId,
+        setName: chosenSetName,
+        setNameBn: chosenSetNameBn,
+        totalSetsCount: validSets.length,
+        attemptedSetsCount: Array.isArray(enrollment?.attemptedSetIds) ? enrollment.attemptedSetIds.length : 0,
         durationMinutes: quiz.durationMinutes || 15,
         timerEnabled: quiz.timerEnabled ?? true,
         passPercentage: quiz.passPercentage || 70,
@@ -232,7 +313,7 @@ export const getQuizForAttempt = asyncHandler(async (req, res) => {
  * - Returns post-submission review (explanations & correct answers)
  */
 export const submitQuiz = asyncHandler(async (req, res) => {
-  const { courseId, answers, selectedAnswers, studentName, studentNameBn } = req.body;
+  const { courseId, setId, answers, selectedAnswers, studentName, studentNameBn } = req.body;
 
   const course = await resolveCourse(courseId);
   if (!course) {
@@ -241,7 +322,12 @@ export const submitQuiz = asyncHandler(async (req, res) => {
 
   const targetCourseId = course.courseId;
   const quiz = await Quiz.findOne({
-    $or: [{ courseId: targetCourseId }, { courseId }],
+    $or: [
+      { courseId: targetCourseId },
+      ...(course?.slug ? [{ courseId: course.slug }] : []),
+      ...(course?._id ? [{ courseId: String(course._id) }] : []),
+      { courseId },
+    ],
   });
 
   if (!quiz) {
@@ -261,12 +347,20 @@ export const submitQuiz = asyncHandler(async (req, res) => {
       e.courseId === course.slug
   );
 
-  if (!enrollment && (!course.price || course.price === 0)) {
+  const isAdminOrTester = [
+    "super_admin",
+    "admin",
+    "instructor",
+    "course_admin",
+    "manager",
+  ].includes(user.role);
+
+  if (!enrollment && (isAdminOrTester || !course.price || course.price === 0)) {
     if (!user.enrolledCourses) user.enrolledCourses = [];
     enrollment = {
       courseId: targetCourseId,
       enrolledAt: new Date(),
-      progressPercent: 0,
+      progressPercent: isAdminOrTester ? 100 : 0,
       completedLessons: [],
       status: "active",
     };
@@ -283,11 +377,23 @@ export const submitQuiz = asyncHandler(async (req, res) => {
     );
   }
 
-  // Combine full pool for authoritative grading
-  const questionPool = [
-    ...(quiz.questionBank || []),
-    ...(quiz.questions || []),
-  ];
+  // Combine questions from chosen set or entire pool
+  let questionPool = [];
+  if (setId && Array.isArray(quiz.questionSets)) {
+    const matchedSet = quiz.questionSets.find((s) => String(s.setId) === String(setId));
+    if (matchedSet && Array.isArray(matchedSet.questions) && matchedSet.questions.length > 0) {
+      questionPool = matchedSet.questions;
+    }
+  }
+
+  if (questionPool.length === 0) {
+    const allSetQuestions = (quiz.questionSets || []).flatMap((s) => s.questions || []);
+    questionPool = [
+      ...allSetQuestions,
+      ...(quiz.questionBank || []),
+      ...(quiz.questions || []),
+    ];
+  }
 
   // Normalize incoming answers object/array
   // Format: { [questionId]: [optionId1, ...] OR optionId } OR Array of selected index for backward compatibility
@@ -300,10 +406,8 @@ export const submitQuiz = asyncHandler(async (req, res) => {
   // Determine which questions were answered
   let answeredQuestionIds = [];
   if (Array.isArray(userAnswers)) {
-    // Legacy array of indices matching quiz.questions
-    const targetList = (quiz.questions && quiz.questions.length > 0)
-      ? quiz.questions
-      : quiz.questionBank;
+    // Legacy array of indices matching questions
+    const targetList = questionPool;
     totalQuestionsCount = targetList.length;
 
     targetList.forEach((q, idx) => {
@@ -427,6 +531,9 @@ export const submitQuiz = asyncHandler(async (req, res) => {
       enrollment.status = "completed";
       enrollment.progressPercent = 100;
       enrollment.quizCooldownUntil = null;
+      if (setId) {
+        enrollment.lastAttemptedSetId = String(setId);
+      }
     }
 
     // Send automated certificate email with PDF link
@@ -445,11 +552,26 @@ export const submitQuiz = asyncHandler(async (req, res) => {
       }
     });
   } else {
-    // Failed: set cooldown period (e.g. 15 minutes)
-    const cooldownMins = quiz.cooldownMinutes || 15;
-    const cooldownEnd = new Date(Date.now() + cooldownMins * 60 * 1000);
+    // Failed: record attempted set and optional cooldown
     if (enrollment) {
-      enrollment.quizCooldownUntil = cooldownEnd;
+      if (setId) {
+        enrollment.lastAttemptedSetId = String(setId);
+        if (!Array.isArray(enrollment.attemptedSetIds)) {
+          enrollment.attemptedSetIds = [];
+        }
+        if (!enrollment.attemptedSetIds.includes(String(setId))) {
+          enrollment.attemptedSetIds.push(String(setId));
+        }
+      }
+      enrollment.quizAttemptsCount = (enrollment.quizAttemptsCount || 0) + 1;
+
+      const cooldownMins = quiz.cooldownMinutes !== undefined ? quiz.cooldownMinutes : 0;
+      if (cooldownMins > 0) {
+        const cooldownEnd = new Date(Date.now() + cooldownMins * 60 * 1000);
+        enrollment.quizCooldownUntil = cooldownEnd;
+      } else {
+        enrollment.quizCooldownUntil = null;
+      }
     }
   }
 
@@ -464,10 +586,17 @@ export const submitQuiz = asyncHandler(async (req, res) => {
         correctCount,
         totalQuestions: effectiveTotal,
         passPercentage: passThreshold,
+        setId: setId || null,
         certificate: issuedCertificate,
         cooldownUntil: isPassed ? null : enrollment?.quizCooldownUntil,
-        cooldownMinutes: quiz.cooldownMinutes || 15,
+        cooldownMinutes: quiz.cooldownMinutes || 0,
         review: reviewReport,
+        retakeInfo: isPassed
+          ? null
+          : {
+              message: "You did not pass. On your next attempt, a different random question set will be served.",
+              messageBn: "আপনি উত্তীর্ণ হতে পারেননি। পরবর্তী রিটেক পরীক্ষায় আপনার জন্য সম্পূর্ণ নতুন ও ভিন্ন প্রশ্ন সেট আসবে।",
+            },
       },
       isPassed
         ? "Congratulations! You passed the assessment and your verified certificate has been issued."
@@ -711,6 +840,188 @@ export const updateQuizSettings = asyncHandler(async (req, res) => {
 
   return res.status(200).json(
     new ApiResponse(200, quiz, "Quiz configuration updated successfully")
+  );
+});
+
+/**
+ * Admin: Get complete Quiz with all Question Sets and settings
+ */
+export const getAdminQuizFull = asyncHandler(async (req, res) => {
+  const { courseId } = req.params;
+  const course = await resolveCourse(courseId);
+  const targetCourseId = course ? course.courseId : courseId;
+
+  let quiz = await Quiz.findOne({
+    $or: [
+      { courseId: targetCourseId },
+      ...(course?.slug ? [{ courseId: course.slug }] : []),
+      ...(course?._id ? [{ courseId: String(course._id) }] : []),
+      { courseId },
+    ],
+  });
+
+  if (!quiz) {
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          courseId: targetCourseId,
+          title: "LPG Safety Assessment Quiz",
+          titleBn: "এলপিজি নিরাপত্তা মূল্যায়ন কুইজ",
+          durationMinutes: 15,
+          passPercentage: 70,
+          timerEnabled: true,
+          shuffleOptions: true,
+          cooldownMinutes: 0,
+          questionSets: [
+            {
+              setId: new mongoose.Types.ObjectId().toString(),
+              setName: "Set 1",
+              setNameBn: "সেট ১",
+              description: "",
+              questions: [],
+            },
+          ],
+        },
+        "Quiz template loaded"
+      )
+    );
+  }
+
+  // Ensure at least one set exists if empty
+  let sets = quiz.questionSets || [];
+  if (sets.length === 0) {
+    // Migrate legacy questionBank if present
+    const legacyQuestions = (quiz.questionBank && quiz.questionBank.length > 0)
+      ? quiz.questionBank
+      : (quiz.questions || []);
+    sets = [
+      {
+        setId: new mongoose.Types.ObjectId().toString(),
+        setName: "Set 1",
+        setNameBn: "সেট ১",
+        description: "",
+        questions: legacyQuestions,
+      },
+    ];
+  }
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        _id: quiz._id,
+        courseId: quiz.courseId,
+        title: quiz.title,
+        titleBn: quiz.titleBn,
+        durationMinutes: quiz.durationMinutes,
+        passPercentage: quiz.passPercentage,
+        timerEnabled: quiz.timerEnabled ?? true,
+        shuffleOptions: quiz.shuffleOptions ?? true,
+        cooldownMinutes: quiz.cooldownMinutes ?? 0,
+        questionSets: sets,
+      },
+      "Quiz details and question sets loaded successfully"
+    )
+  );
+});
+
+/**
+ * Admin: Save/Update Question Sets and settings for a course
+ */
+export const saveQuizSets = asyncHandler(async (req, res) => {
+  const { courseId } = req.params;
+  const {
+    title,
+    titleBn,
+    durationMinutes,
+    passPercentage,
+    timerEnabled,
+    shuffleOptions,
+    cooldownMinutes,
+    questionSets,
+  } = req.body;
+
+  const course = await resolveCourse(courseId);
+  const targetCourseId = course ? course.courseId : courseId;
+
+  if (!Array.isArray(questionSets)) {
+    throw new ApiError(400, "questionSets array is required");
+  }
+
+  // Sanitize and structure questionSets
+  const formattedSets = questionSets.map((set, sIdx) => {
+    const rawQuestions = Array.isArray(set.questions) ? set.questions : [];
+    const formattedQuestions = rawQuestions.map((q) => {
+      const qOptions = Array.isArray(q.options) ? q.options : [];
+      return {
+        id: q.id || new mongoose.Types.ObjectId().toString(),
+        question: q.question || "",
+        questionBn: q.questionBn || q.question || "",
+        type: q.type || "single",
+        options: qOptions.map((opt) => ({
+          id: opt.id || new mongoose.Types.ObjectId().toString(),
+          text: opt.text || "",
+          textBn: opt.textBn || opt.text || "",
+          isCorrect: Boolean(opt.isCorrect),
+        })),
+        explanation: q.explanation || "",
+        explanationBn: q.explanationBn || "",
+        points: Number(q.points) || 1,
+      };
+    });
+
+    return {
+      setId: set.setId || new mongoose.Types.ObjectId().toString(),
+      setName: set.setName?.trim() || `Set ${sIdx + 1}`,
+      setNameBn: set.setNameBn?.trim() || `সেট ${sIdx + 1}`,
+      description: set.description || "",
+      questions: formattedQuestions,
+    };
+  });
+
+  let quiz = await Quiz.findOne({
+    $or: [
+      { courseId: targetCourseId },
+      ...(course?.slug ? [{ courseId: course.slug }] : []),
+      ...(course?._id ? [{ courseId: String(course._id) }] : []),
+      { courseId },
+    ],
+  });
+
+  if (!quiz) {
+    quiz = new Quiz({
+      courseId: targetCourseId,
+      title: title || "LPG Safety Assessment Quiz",
+      titleBn: titleBn || "এলপিজি নিরাপত্তা মূল্যায়ন কুইজ",
+      durationMinutes: durationMinutes ? Number(durationMinutes) : 15,
+      passPercentage: passPercentage ? Number(passPercentage) : 70,
+      timerEnabled: timerEnabled !== undefined ? Boolean(timerEnabled) : true,
+      shuffleOptions: shuffleOptions !== undefined ? Boolean(shuffleOptions) : true,
+      cooldownMinutes: cooldownMinutes !== undefined ? Number(cooldownMinutes) : 0,
+      questionSets: formattedSets,
+      questionBank: formattedSets[0]?.questions || [],
+      questions: formattedSets[0]?.questions || [],
+    });
+  } else {
+    if (title) quiz.title = title;
+    if (titleBn) quiz.titleBn = titleBn;
+    if (durationMinutes !== undefined) quiz.durationMinutes = Number(durationMinutes);
+    if (passPercentage !== undefined) quiz.passPercentage = Number(passPercentage);
+    if (timerEnabled !== undefined) quiz.timerEnabled = Boolean(timerEnabled);
+    if (shuffleOptions !== undefined) quiz.shuffleOptions = Boolean(shuffleOptions);
+    if (cooldownMinutes !== undefined) quiz.cooldownMinutes = Number(cooldownMinutes);
+    quiz.questionSets = formattedSets;
+    if (formattedSets[0]?.questions?.length > 0) {
+      quiz.questionBank = formattedSets[0].questions;
+      quiz.questions = formattedSets[0].questions;
+    }
+  }
+
+  await quiz.save();
+
+  return res.status(200).json(
+    new ApiResponse(200, quiz, "Quiz question sets and settings saved successfully")
   );
 });
 

@@ -29,6 +29,17 @@ const quizQuestionSchema = new Schema({
   points: { type: Number, default: 1 },
 });
 
+const questionSetSchema = new Schema({
+  setId: {
+    type: String,
+    default: () => new mongoose.Types.ObjectId().toString(),
+  },
+  setName: { type: String, default: "Set 1" },
+  setNameBn: { type: String, default: "সেট ১" },
+  description: { type: String, default: "" },
+  questions: [quizQuestionSchema],
+});
+
 const quizSchema = new Schema(
   {
     courseId: { type: String, required: true, unique: true, index: true },
@@ -41,6 +52,7 @@ const quizSchema = new Schema(
     questionsPerQuiz: { type: Number, default: 20 },
     cooldownMinutes: { type: Number, default: 15 },
     shuffleOptions: { type: Boolean, default: true },
+    questionSets: [questionSetSchema],
     questionBank: [quizQuestionSchema],
     // Backward compatibility if questions array was used:
     questions: [quizQuestionSchema],

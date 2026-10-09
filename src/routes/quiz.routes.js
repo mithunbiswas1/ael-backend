@@ -15,6 +15,8 @@ import {
   updateQuestionInBank,
   deleteQuestionFromBank,
   updateQuizSettings,
+  getAdminQuizFull,
+  saveQuizSets,
 } from "../controllers/quiz.controllers.js";
 
 const router = Router();
@@ -38,6 +40,14 @@ router
 router
   .route("/admin/:courseId/settings")
   .put(verifyJWT, checkPermission("quizzes", "edit"), updateQuizSettings);
+
+router
+  .route("/admin/:courseId/full")
+  .get(verifyJWT, checkPermission("quizzes", "view"), getAdminQuizFull);
+
+router
+  .route("/admin/:courseId/sets")
+  .put(verifyJWT, checkPermission("quizzes", "edit"), saveQuizSets);
 
 // General Admin routes
 router

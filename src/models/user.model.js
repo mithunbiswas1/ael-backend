@@ -159,6 +159,9 @@ const userSchema = new Schema(
         quizPassed: { type: Boolean, default: false },
         lastQuizAttemptAt: { type: Date },
         quizCooldownUntil: { type: Date },
+        lastAttemptedSetId: { type: String, default: null },
+        attemptedSetIds: [{ type: String }],
+        quizAttemptsCount: { type: Number, default: 0 },
         moduleQuizResults: [
           {
             moduleIndex: { type: Number, required: true },
